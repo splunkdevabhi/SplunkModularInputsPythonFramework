@@ -6,7 +6,7 @@ This is a simple template based framework for building <a href="http://docs.splu
 
 It contains an example HelloWorld Modular Input that you can use as a practical reference to follow.
 
-## Pre_requisites
+## Prerequisites
 
 * Splunk 5+
 * Clone the repository and setup a project in your IDE ie: Eclipse
