@@ -1,0 +1,77 @@
+<project
+    name="Splunk Python Modular Inputs"
+    basedir=".." >
+
+
+
+    <description>
+		Splunk Modular Inputs Python Framework
+    </description>
+
+    <property file="build/build.properties" />
+
+    <property name="release" value="releases"/>
+    <property name="lib" value="lib"/>
+    <property name="temp_build" value="temp_build"/>
+    <property name="suffix" value=".tar.gz"/>
+    <property name="compressionType" value="gzip"/>
+
+    <target name="init" >
+
+        <delete dir="${temp_build}" />
+
+        <mkdir dir="${temp_build}" />
+    </target>
+
+
+
+    <target
+        name="build_modular_input"
+        description="build modular input" depends="init" >
+
+
+        <loadproperties srcFile="implementations/${modinput_to_build}/default/app.conf" />
+
+        <copy todir="${temp_build}/metadata" >
+
+            <fileset dir="implementations/${modinput_to_build}/metadata" />
+        </copy>
+
+        <copy todir="${temp_build}/bin" >
+
+            <fileset dir="implementations/${modinput_to_build}/bin" />
+        </copy>
+
+        <copy todir="${temp_build}/appserver" >
+
+            <fileset dir="implementations/${modinput_to_build}/appserver" />
+        </copy>
+
+        <copy todir="${temp_build}/default" >
+
+            <fileset dir="implementations/${modinput_to_build}/default" />
+        </copy>
+        
+        <copy todir="${temp_build}/README" >
+
+            <fileset dir="implementations/${modinput_to_build}/README" />
+        </copy>
+
+        
+
+
+        <tar
+            compression="${compressionType}"
+            destfile="${release}/${id}-${version}${suffix}" >
+
+            <zipfileset
+                dir="${temp_build}"
+                prefix="${id}" />
+        </tar>
+
+        <delete dir="${temp_build}" />
+    </target>
+    
+    
+    
+</project>
