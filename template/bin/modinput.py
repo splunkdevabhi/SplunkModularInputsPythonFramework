@@ -72,7 +72,7 @@ def print_simple(s):
     
 def usage():
     print "usage: %s [--scheme|--validate-arguments]"
-    logging.error("Incorrect Program usaae")
+    logging.error("Incorrect Program Usage")
     sys.exit(2)
 
 def do_scheme():
