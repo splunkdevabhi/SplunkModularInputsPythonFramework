@@ -108,6 +108,7 @@ def do_run():
         try:
             cmdGen = cmdgen.CommandGenerator()
         
+            
             errorIndication, errorStatus, errorIndex, varBinds = cmdGen.getCmd(
                 cmdgen.CommunityData(communitystring),
                 cmdgen.UdpTransportTarget((destination, port)),
@@ -124,7 +125,7 @@ def do_run():
                 splunkevent =""
                 
                 for name, val in varBinds:
-                    splunkevent += '%s = "%s" ,' % (name.prettyPrint(), val.prettyPrint())
+                    splunkevent += '%s = "%s" ' % (name.prettyPrint(), val.prettyPrint())
                     
                 print_xml_single_instance_mode(splunkevent)
                 sys.stdout.flush()
