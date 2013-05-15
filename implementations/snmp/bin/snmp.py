@@ -13,6 +13,7 @@ import time
 SPLUNK_HOME = os.environ.get("SPLUNK_HOME")
 sys.path.append(SPLUNK_HOME + "/etc/apps/snmp_ta/bin/pyasn1-0.1.6-py2.7.egg")
 sys.path.append(SPLUNK_HOME + "/etc/apps/snmp_ta/bin/pysnmp-4.2.4-py2.7.egg")
+sys.path.append(SPLUNK_HOME + "/etc/apps/snmp_ta/bin/pysnmp_mibs-0.1.4-py2.7.egg")
 from pysnmp.entity.rfc3413.oneliner import cmdgen
 
 #set up logging
@@ -101,7 +102,7 @@ def do_run():
     mib=config.get("mib","SNMPv2-MIB")
     oid=config.get("oid","sysDescr")
     snmpindex=config.get("snmpindex",0)
-    communitystring=config.get("communitystring")
+    communitystring=config.get("communitystring","public")
     snmpinterval=config.get("snmpinterval",60)     
     
     while True:      
@@ -113,6 +114,7 @@ def do_run():
                 cmdgen.CommunityData(communitystring),
                 cmdgen.UdpTransportTarget((destination, port)),
                 cmdgen.MibVariable(mib, oid, snmpindex),
+                '.1.3.6.1.2.1.1.3.0',
                 lookupNames=True, lookupValues=True
             )
             if errorIndication:
@@ -156,7 +158,7 @@ def print_simple(s):
     
 def usage():
     print "usage: %s [--scheme|--validate-arguments]"
-    logging.error("Incorrect Program usaae")
+    logging.error("Incorrect Program Usage")
     sys.exit(2)
 
 def do_scheme():
