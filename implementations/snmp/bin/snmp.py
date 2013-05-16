@@ -89,24 +89,33 @@ SCHEME = """<scheme>
 """
 
 def do_validate():
-    config = get_validation_config() 
-    port=config.get("port")
-    snmpinterval=config.get("snmpinterval")  
-    snmpindex=config.get("snmpindex") 
     
-    validationFailed = false
-    if port < 1:
-        print_validation_error("Port value must be a positive integer")
-        validationFailed = true
-    if snmpinterval < 1:
-        print_validation_error("SNMP Polling interval must be a positive integer")
-        validationFailed = true
-    if snmpindex < 0:
-        print_validation_error("SNMP index must zero or a positive integer") 
-        validationFailed = true 
+    try:
+        config = get_validation_config() 
+        port=config.get("port")
+        snmpinterval=config.get("snmpinterval")  
+        snmpindex=config.get("snmpindex") 
+    
+        validationFailed = False
+    
+        
+        if not port is None and int(port) < 1:
+            print_validation_error("Port value must be a positive integer")
+            validationFailed = True
+        if not snmpinterval is None and int(snmpinterval) < 1:
+            print_validation_error("SNMP Polling interval must be a positive integer")
+            validationFailed = True
+        if not snmpindex is None and int(snmpindex) < 0:
+            print_validation_error("SNMP index must zero or a positive integer") 
+            validationFailed = True 
+        if validationFailed:
+            sys.exit(2)
+               
+    except RuntimeError,e:
+        logging.error("Looks like an error: %s" % str(e))
+        sys.exit(1)
+        raise   
      
-    if validationFailed:
-        sys.exit(2)    
     
 def do_run():
     
@@ -147,7 +156,7 @@ def do_run():
                 print_xml_single_instance_mode(splunkevent)
                 sys.stdout.flush()
 
-        except RuntimeError:
+        except RuntimeError,e:
             logging.error("Looks like an error: %s" % str(e))
             sys.exit(1)
             raise    
