@@ -90,8 +90,23 @@ SCHEME = """<scheme>
 
 def do_validate():
     config = get_validation_config() 
-    #TODO
-    #if error , print_validation_error & sys.exit(2) 
+    port=config.get("port")
+    snmpinterval=config.get("snmpinterval")  
+    snmpindex=config.get("snmpindex") 
+    
+    validationFailed = false
+    if port < 1:
+        print_validation_error("Port value must be a positive integer")
+        validationFailed = true
+    if snmpinterval < 1:
+        print_validation_error("SNMP Polling interval must be a positive integer")
+        validationFailed = true
+    if snmpindex < 0:
+        print_validation_error("SNMP index must zero or a positive integer") 
+        validationFailed = true 
+     
+    if validationFailed:
+        sys.exit(2)    
     
 def do_run():
     
