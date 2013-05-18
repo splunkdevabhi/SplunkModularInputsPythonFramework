@@ -10,6 +10,7 @@ import os,sys,logging
 import xml.dom.minidom, xml.sax.saxutils
 import time
 
+
 SPLUNK_HOME = os.environ.get("SPLUNK_HOME")
 sys.path.append(SPLUNK_HOME + "/etc/apps/snmp_ta/bin/pyasn1-0.1.6-py2.7.egg")
 sys.path.append(SPLUNK_HOME + "/etc/apps/snmp_ta/bin/pysnmp-4.2.4-py2.7.egg")
@@ -38,13 +39,18 @@ SCHEME = """<scheme>
             <arg name="name">
                 <title>SNMP Input Name</title>
                 <description>Name of this SNMP input</description>
-            </arg>
-                   
+            </arg>                  
             <arg name="destination">
                 <title>Destination</title>
                 <description>IP or hostname of the device you would like to query</description>
                 <required_on_edit>false</required_on_edit>
                 <required_on_create>true</required_on_create>
+            </arg>
+            <arg name="ipv6">
+                <title>IP Version 6</title>
+                <description>Whether or not this is an IP version 6 address. Defaults to false</description>
+                <required_on_edit>false</required_on_edit>
+                <required_on_create>false</required_on_create>
             </arg>
             <arg name="port">
                 <title>Port</title>
@@ -52,29 +58,23 @@ SCHEME = """<scheme>
                 <required_on_edit>false</required_on_edit>
                 <required_on_create>false</required_on_create>
             </arg>
-            <arg name="mib">
-                <title>MIB</title>
-                <description>The MIB that contains the OID to query. Defaults to "SNMPv2-MIB"</description>
+            <arg name="snmp_version">
+                <title>SNMP Version</title>
+                <description>The SNMP Version , 1 or 2C, version 3 not currently supported. Defaults to 2C</description>
                 <required_on_edit>false</required_on_edit>
                 <required_on_create>false</required_on_create>
             </arg>
-            <arg name="oid">
-                <title>OID</title>
-                <description>The OID that you want to query. Defaults to "sysDescr"</description>
-                <required_on_edit>false</required_on_edit>
-                <required_on_create>false</required_on_create>
-            </arg>
-            <arg name="snmpindex">
-                <title>SNMP Index</title>
-                <description>The index of the OID to query. Defaults to 0</description>
-                <required_on_edit>false</required_on_edit>
-                <required_on_create>false</required_on_create>
+            <arg name="object_names">
+                <title>Object Names</title>
+                <description>1 or more Objects Names , comma delimited , in either textual(iso.org.dod.internet.mgmt.mib-2.system.sysDescr.0) or numerical(1.3.6.1.2.1.1.3.0) format</description>
+                <required_on_edit>true</required_on_edit>
+                <required_on_create>true</required_on_create>
             </arg>
             <arg name="communitystring">
                 <title>Community String</title>
-                <description>Community String used for authentication</description>
+                <description>Community String used for authentication.Defaults to "public"</description>
                 <required_on_edit>false</required_on_edit>
-                <required_on_create>true</required_on_create>
+                <required_on_create>false</required_on_create>
             </arg>
             <arg name="snmpinterval">
                 <title>Interval</title>
@@ -82,7 +82,24 @@ SCHEME = """<scheme>
                 <required_on_edit>false</required_on_edit>
                 <required_on_create>false</required_on_create>
             </arg>
-            
+            <arg name="do_bulk_get">
+                <title>Perform GET BULK</title>
+                <description>Whether or not to perform an SNMP GET BULK operation.This will retrieve all the object attributes in the sub tree of the declared OIDs.Be aware of potential performance issues , http://www.net-snmp.org/wiki/index.php/GETBULK. Defaults to false</description>
+                <required_on_edit>false</required_on_edit>
+                <required_on_create>false</required_on_create>
+            </arg>
+            <arg name="non_repeaters">
+                <title>Non Repeaters (for GET BULK)</title>
+                <description>The number of objects that are only expected to return a single GETNEXT instance, not multiple instances. Managers frequently request the value of sysUpTime and only want that instance plus a list of other objects.Defaults to 0</description>
+                <required_on_edit>false</required_on_edit>
+                <required_on_create>false</required_on_create>
+            </arg>
+            <arg name="max_repetitions">
+                <title>Max Repetitions (for GET BULK)</title>
+                <description>The number of objects that should be returned for all the repeating OIDs. Agent's must truncate the list to something shorter if it won't fit within the max-message size supported by the command generator or the agent.Defaults to 25</description>
+                <required_on_edit>false</required_on_edit>
+                <required_on_create>false</required_on_create>
+            </arg>
         </args>
     </endpoint>
 </scheme>
@@ -93,21 +110,25 @@ def do_validate():
     try:
         config = get_validation_config() 
         port=config.get("port")
-        snmpinterval=config.get("snmpinterval")  
-        snmpindex=config.get("snmpindex") 
-    
+        snmpinterval=config.get("snmpinterval")   
+        max_repetitions=config.get("max_repetitions") 
+        non_repeaters=config.get("non_repeaters") 
+        
         validationFailed = False
     
         
         if not port is None and int(port) < 1:
             print_validation_error("Port value must be a positive integer")
             validationFailed = True
+        if not non_repeaters is None and int(non_repeaters) < 0:
+            print_validation_error("Non Repeaters value must be zero or a positive integer")
+            validationFailed = True
+        if not max_repetitions is None and int(max_repetitions) < 0:
+            print_validation_error("Max Repetitions value must be zero or a positive integer")
+            validationFailed = True
         if not snmpinterval is None and int(snmpinterval) < 1:
             print_validation_error("SNMP Polling interval must be a positive integer")
             validationFailed = True
-        if not snmpindex is None and int(snmpindex) < 0:
-            print_validation_error("SNMP index must zero or a positive integer") 
-            validationFailed = True 
         if validationFailed:
             sys.exit(2)
                
@@ -122,25 +143,47 @@ def do_run():
     config = get_input_config() 
     #parameters with defaults
     destination=config.get("destination")
-    port=config.get("port",161)
-    mib=config.get("mib","SNMPv2-MIB")
-    oid=config.get("oid","sysDescr")
-    snmpindex=config.get("snmpindex",0)
+    port=int(config.get("port",161))
     communitystring=config.get("communitystring","public")
-    snmpinterval=config.get("snmpinterval",60)     
+    snmpinterval=int(config.get("snmpinterval",60))   
+    ipv6=int(config.get("ipv6",0))
     
+    snmp_version=config.get("snmp_version","2C")
+    mp_model_val=1
+    if snmp_version == "1":
+        mp_model_val=0
+        
+    
+    object_names=config.get("object_names")
+    oid_args = map(str,object_names.split(","))
+    
+    do_bulk=int(config.get("do_bulk_get",0))
+    non_repeaters=int(config.get("non_repeaters",0))
+    max_repetitions=int(config.get("max_repetitions",25))
+        
     while True:      
         try:
             cmdGen = cmdgen.CommandGenerator()
-        
+         
+            if ipv6:
+                transport = cmdgen.Udp6TransportTarget((destination, port)) 
+            else:
+                transport = cmdgen.UdpTransportTarget((destination, port))  
+                   
+            if do_bulk and not snmp_version == "1":
+                errorIndication, errorStatus, errorIndex, varBindTable = cmdGen.bulkCmd(
+                cmdgen.CommunityData(communitystring,mpModel=mp_model_val),
+                transport,
+                non_repeaters, max_repetitions,
+                *oid_args,lookupNames=True, lookupValues=True)
+            else:
+                errorIndication, errorStatus, errorIndex, varBinds = cmdGen.getCmd(
+                cmdgen.CommunityData(communitystring,mpModel=mp_model_val),
+                transport,
+                *oid_args,
+                lookupNames=True, lookupValues=True)
             
-            errorIndication, errorStatus, errorIndex, varBinds = cmdGen.getCmd(
-                cmdgen.CommunityData(communitystring),
-                cmdgen.UdpTransportTarget((destination, port)),
-                cmdgen.MibVariable(mib, oid, snmpindex),
-                '.1.3.6.1.2.1.1.3.0',
-                lookupNames=True, lookupValues=True
-            )
+            
             if errorIndication:
                 raise RuntimeError(errorIndication)
                 logging.error(errorIndication)
@@ -150,12 +193,22 @@ def do_run():
             else:
                 splunkevent =""
                 
-                for name, val in varBinds:
-                    splunkevent += '%s = "%s" ' % (name.prettyPrint(), val.prettyPrint())
+                if do_bulk:
+                    for varBindTableRow in varBindTable:
+                        for name, val in varBindTableRow:
+                            splunkevent += '%s = "%s" ' % (name.prettyPrint(), val.prettyPrint()) 
+                else:    
+                    for name, val in varBinds:
+                        splunkevent += '%s = "%s" ' % (name.prettyPrint(), val.prettyPrint())
+                   
+                   
                     
                 print_xml_single_instance_mode(splunkevent)
                 sys.stdout.flush()
-
+                
+            
+            
+            
         except RuntimeError,e:
             logging.error("Looks like an error: %s" % str(e))
             sys.exit(1)

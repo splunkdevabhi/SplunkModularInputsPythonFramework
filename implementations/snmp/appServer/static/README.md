@@ -28,16 +28,17 @@ Any log entries/errors will get written to $SPLUNK_HOME/var/log/splunk/splunkd.l
 
 ## Contact
 
-This project was initiated by Scott Spencer & Damien Dallimore
+This project was initiated by Damien Dallimore & Scott Spencer 
 <table>
 
 <tr>
 <td><em>Email</em></td>
-<td>sspencer@splunk.com</td>
+<td>ddallimore@splunk.com</td>
 </tr>
 <tr>
 <td><em>Email</em></td>
-<td>ddallimore@splunk.com</td>
+<td>sspencer@splunk.com</td>
 </tr>
+
 
 </table>
