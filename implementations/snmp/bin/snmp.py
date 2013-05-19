@@ -109,6 +109,7 @@ def do_validate():
     
     try:
         config = get_validation_config() 
+        
         port=config.get("port")
         snmpinterval=config.get("snmpinterval")   
         max_repetitions=config.get("max_repetitions") 
@@ -141,22 +142,26 @@ def do_validate():
 def do_run():
     
     config = get_input_config() 
-    #parameters with defaults
+    #params
     destination=config.get("destination")
     port=int(config.get("port",161))
-    communitystring=config.get("communitystring","public")
     snmpinterval=int(config.get("snmpinterval",60))   
     ipv6=int(config.get("ipv6",0))
     
+    #snmp 1 and 2C params
     snmp_version=config.get("snmp_version","2C")
     mp_model_val=1
     if snmp_version == "1":
         mp_model_val=0
-        
+    communitystring=config.get("communitystring","public")   
     
+    #object names to poll
     object_names=config.get("object_names")
-    oid_args = map(str,object_names.split(","))
+    oid_args = map(str,object_names.split(","))   
+    #trim any whitespace using a list comprehension
+    oid_args = [x.strip(' ') for x in oid_args]
     
+    #GET BULK params
     do_bulk=int(config.get("do_bulk_get",0))
     non_repeaters=int(config.get("non_repeaters",0))
     max_repetitions=int(config.get("max_repetitions",25))
@@ -204,10 +209,7 @@ def do_run():
                    
                     
                 print_xml_single_instance_mode(splunkevent)
-                sys.stdout.flush()
-                
-            
-            
+                sys.stdout.flush()         
             
         except RuntimeError,e:
             logging.error("Looks like an error: %s" % str(e))
