@@ -189,8 +189,8 @@ def trapCallback(transportDispatcher, transportDomain, transportAddress, wholeMs
         if reqPDU.isSameTypeWith(pMod.TrapPDU()):
             if msgVer == api.protoVersion1:
                 
-                splunkevent += 'notification_from_domain = "%s" ' % (transportDomain)
-                splunkevent += 'notification_from_address = "%s" ' % (transportAddress)               
+                #splunkevent += 'notification_from_domain = "%s" ' % (transportDomain)
+                #splunkevent += 'notification_from_address = "%s" ' % (transportAddress)               
                 splunkevent += 'notification_enterprise = "%s" ' % (pMod.apiTrapPDU.getEnterprise(reqPDU).prettyPrint())
                 splunkevent += 'notification_agent_address = "%s" ' % (pMod.apiTrapPDU.getAgentAddr(reqPDU).prettyPrint())
                 splunkevent += 'notification_generic_trap = "%s" ' % (pMod.apiTrapPDU.getGenericTrap(reqPDU).prettyPrint())
@@ -310,13 +310,13 @@ class TrapThread(threading.Thread):
          
         transportDispatcher = AsynsockDispatcher()
         transportDispatcher.registerRecvCbFun(trapCallback)
-        if ipv6:
+        if self.ipv6:
             transport = udp.Udp6SocketTransport()
         else:
             transport = udp.UdpSocketTransport()  
                 
         try:     
-            transportDispatcher.registerTransport(udp.domainName, transport.openServerMode((host, port)))
+            transportDispatcher.registerTransport(udp.domainName, transport.openServerMode((self.host, self.port)))
       
             transportDispatcher.jobStarted(1)
             # Dispatcher will never finish as job#1 never reaches zero
