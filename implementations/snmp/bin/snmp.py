@@ -56,7 +56,7 @@ SCHEME = """<scheme>
                 <title>Destination</title>
                 <description>IP or hostname of the device you would like to query</description>
                 <required_on_edit>false</required_on_edit>
-                <required_on_create>true</required_on_create>
+                <required_on_create>false</required_on_create>
             </arg>
             <arg name="ipv6">
                 <title>IP Version 6</title>
@@ -79,8 +79,8 @@ SCHEME = """<scheme>
             <arg name="object_names">
                 <title>Object Names</title>
                 <description>1 or more Objects Names , comma delimited , in either textual(iso.org.dod.internet.mgmt.mib-2.system.sysDescr.0) or numerical(1.3.6.1.2.1.1.3.0) format</description>
-                <required_on_edit>true</required_on_edit>
-                <required_on_create>true</required_on_create>
+                <required_on_edit>false</required_on_edit>
+                <required_on_create>false</required_on_create>
             </arg>
             <arg name="communitystring">
                 <title>Community String</title>
@@ -228,9 +228,10 @@ def do_run():
     
     #object names to poll
     object_names=config.get("object_names")
-    oid_args = map(str,object_names.split(","))   
-    #trim any whitespace using a list comprehension
-    oid_args = [x.strip(' ') for x in oid_args]
+    if not object_names is None:
+        oid_args = map(str,object_names.split(","))   
+        #trim any whitespace using a list comprehension
+        oid_args = [x.strip(' ') for x in oid_args]
     
     #GET BULK params
     do_bulk=int(config.get("do_bulk_get",0))
@@ -246,7 +247,7 @@ def do_run():
         trapThread = TrapThread(trap_port,trap_host,ipv6)
         trapThread.start()
       
-    while True:      
+    while not (object_names is None and destination is None):      
         try:
             cmdGen = cmdgen.CommandGenerator()
          
