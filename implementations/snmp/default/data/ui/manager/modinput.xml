@@ -44,6 +44,26 @@
             <opt value="1" label="1"/>                    
           </options>
         </element>
+        
+        <element name="listen_traps" type="checkbox" label="Listen for TRAP messages">
+          
+          <view name="edit"/>
+          <view name="create"/>
+          <key name="exampleText">Whether or not to listen for TRAP messages. Defaults to false</key>
+        </element>
+        <element name="trap_host" type="textfield" label="TRAP listener host">
+          
+          <view name="edit"/>
+          <view name="create"/>
+          <key name="exampleText">TRAP listener host. Defaults to localhost</key>
+        </element>
+        <element name="trap_port" type="textfield" label="TRAP listener port">
+          
+          <view name="edit"/>
+          <view name="create"/>
+          <key name="exampleText">TRAP listener port. Defaults to 162</key>
+        </element>
+        
         <element name="object_names" type="textfield" label="Object Names List">
          
           <view name="edit"/>

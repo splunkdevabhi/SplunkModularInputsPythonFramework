@@ -29,3 +29,12 @@ communitystring= <value>
 
 *How often to run the SNMP query (in seconds). Defaults to 60 seconds
 snmpinterval= <value>
+
+*Whether or not to listen for TRAP messages. Defaults to false
+listen_traps= <value>
+
+*The TRAP port to listen on. Defaults to 162
+trap_port= <value>
+
+*The trap host. Defaults to localhost
+trap_host= <value>

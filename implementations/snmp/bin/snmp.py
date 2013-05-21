@@ -9,13 +9,25 @@ All Rights Reserved
 import os,sys,logging
 import xml.dom.minidom, xml.sax.saxutils
 import time
+import threading
 
-
+#dynamically load in any eggs in /etc/apps/snmp_ta/bin
 SPLUNK_HOME = os.environ.get("SPLUNK_HOME")
-sys.path.append(SPLUNK_HOME + "/etc/apps/snmp_ta/bin/pyasn1-0.1.6-py2.7.egg")
-sys.path.append(SPLUNK_HOME + "/etc/apps/snmp_ta/bin/pysnmp-4.2.4-py2.7.egg")
-sys.path.append(SPLUNK_HOME + "/etc/apps/snmp_ta/bin/pysnmp_mibs-0.1.4-py2.7.egg")
+#sys.path.append(SPLUNK_HOME + "/etc/apps/snmp_ta/bin/pyasn1-0.1.6-py2.7.egg")
+#sys.path.append(SPLUNK_HOME + "/etc/apps/snmp_ta/bin/pysnmp-4.2.4-py2.7.egg")
+#sys.path.append(SPLUNK_HOME + "/etc/apps/snmp_ta/bin/pysnmp_mibs-0.1.4-py2.7.egg")
+egg_dir = SPLUNK_HOME + "/etc/apps/snmp_ta/bin/"
+for filename in os.listdir(egg_dir):
+    if filename.endswith(".egg"):
+       sys.path.append(egg_dir + filename) 
+
+
 from pysnmp.entity.rfc3413.oneliner import cmdgen
+from pysnmp.carrier.asynsock.dispatch import AsynsockDispatcher
+from pysnmp.carrier.asynsock.dgram import udp, udp6
+from pyasn1.codec.ber import decoder
+from pysnmp.proto import api
+
 
 #set up logging
 logging.root
@@ -100,6 +112,24 @@ SCHEME = """<scheme>
                 <required_on_edit>false</required_on_edit>
                 <required_on_create>false</required_on_create>
             </arg>
+            <arg name="listen_traps">
+                <title>Listen for TRAP messages</title>
+                <description>Whether or not to listen for TRAP messages</description>
+                <required_on_edit>false</required_on_edit>
+                <required_on_create>false</required_on_create>
+            </arg>
+            <arg name="trap_port">
+                <title>TRAP listener port</title>
+                <description>TRAP listener port. Defaults to 162</description>
+                <required_on_edit>false</required_on_edit>
+                <required_on_create>false</required_on_create>
+            </arg>
+            <arg name="trap_host">
+                <title>TRAP listener host</title>
+                <description>TRAP listener host. Defaults to localhost</description>
+                <required_on_edit>false</required_on_edit>
+                <required_on_create>false</required_on_create>
+            </arg>
         </args>
     </endpoint>
 </scheme>
@@ -111,6 +141,7 @@ def do_validate():
         config = get_validation_config() 
         
         port=config.get("port")
+        trap_port=config.get("trap_port")
         snmpinterval=config.get("snmpinterval")   
         max_repetitions=config.get("max_repetitions") 
         non_repeaters=config.get("non_repeaters") 
@@ -120,6 +151,9 @@ def do_validate():
         
         if not port is None and int(port) < 1:
             print_validation_error("Port value must be a positive integer")
+            validationFailed = True
+        if not trap_port is None and int(trap_port) < 1:
+            print_validation_error("Trap port value must be a positive integer")
             validationFailed = True
         if not non_repeaters is None and int(non_repeaters) < 0:
             print_validation_error("Non Repeaters value must be zero or a positive integer")
@@ -138,6 +172,43 @@ def do_validate():
         sys.exit(1)
         raise   
      
+def trapCallback(transportDispatcher, transportDomain, transportAddress, wholeMsg):
+    while wholeMsg:
+        msgVer = int(api.decodeMessageVersion(wholeMsg))
+        if msgVer in api.protoModules:
+            pMod = api.protoModules[msgVer]
+        else:
+            logging.error('Receiving trap , unsupported SNMP version %s' % msgVer)
+            return
+        reqMsg, wholeMsg = decoder.decode(wholeMsg, asn1Spec=pMod.Message(),)
+        
+        reqPDU = pMod.apiMessage.getPDU(reqMsg)
+        
+        splunkevent =""
+        
+        if reqPDU.isSameTypeWith(pMod.TrapPDU()):
+            if msgVer == api.protoVersion1:
+                
+                splunkevent += 'notification_from_domain = "%s" ' % (transportDomain)
+                splunkevent += 'notification_from_address = "%s" ' % (transportAddress)               
+                splunkevent += 'notification_enterprise = "%s" ' % (pMod.apiTrapPDU.getEnterprise(reqPDU).prettyPrint())
+                splunkevent += 'notification_agent_address = "%s" ' % (pMod.apiTrapPDU.getAgentAddr(reqPDU).prettyPrint())
+                splunkevent += 'notification_generic_trap = "%s" ' % (pMod.apiTrapPDU.getGenericTrap(reqPDU).prettyPrint())
+                splunkevent += 'notification_specific_trap = "%s" ' % (pMod.apiTrapPDU.getSpecificTrap(reqPDU).prettyPrint())
+                splunkevent += 'notification_uptime = "%s" ' % (pMod.apiTrapPDU.getTimeStamp(reqPDU).prettyPrint())
+                
+                varBinds = pMod.apiTrapPDU.getVarBindList(reqPDU)
+            else:
+                varBinds = pMod.apiPDU.getVarBindList(reqPDU)
+            for oid, val in varBinds:
+                splunkevent +='%s = "%s" ' % (oid.prettyPrint(), val.prettyPrint())
+        
+        if splunkevent != "":
+            print_xml_single_instance_mode(splunkevent)
+            sys.stdout.flush() 
+                
+    return wholeMsg        
+
     
 def do_run():
     
@@ -165,7 +236,16 @@ def do_run():
     do_bulk=int(config.get("do_bulk_get",0))
     non_repeaters=int(config.get("non_repeaters",0))
     max_repetitions=int(config.get("max_repetitions",25))
-        
+    
+    #TRAP listener params
+    listen_traps=int(config.get("listen_traps",0))
+    trap_port=int(config.get("trap_port",162))
+    trap_host=config.get("trap_host","localhost")
+    
+    if listen_traps and (snmp_version == "1" or "2C") :
+        trapThread = TrapThread(trap_port,trap_host,ipv6)
+        trapThread.start()
+      
     while True:      
         try:
             cmdGen = cmdgen.CommandGenerator()
@@ -218,6 +298,33 @@ def do_run():
                     
         time.sleep(float(snmpinterval))
         
+class TrapThread(threading.Thread):
+    
+     def __init__(self,port,host,ipv6):
+         threading.Thread.__init__(self)
+         self.port=port
+         self.host=host
+         self.ipv6=ipv6
+
+     def run(self):
+         
+        transportDispatcher = AsynsockDispatcher()
+        transportDispatcher.registerRecvCbFun(trapCallback)
+        if ipv6:
+            transport = udp.Udp6SocketTransport()
+        else:
+            transport = udp.UdpSocketTransport()  
+                
+        try:     
+            transportDispatcher.registerTransport(udp.domainName, transport.openServerMode((host, port)))
+      
+            transportDispatcher.jobStarted(1)
+            # Dispatcher will never finish as job#1 never reaches zero
+            transportDispatcher.runDispatcher()     
+        except RuntimeError,e:
+            transportDispatcher.closeDispatcher()
+            logging.error("Looks like an error: %s" % str(e))
+            sys.exit(1)
 
 # prints validation error data to be consumed by Splunk
 def print_validation_error(s):
