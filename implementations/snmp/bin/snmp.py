@@ -120,7 +120,7 @@ SCHEME = """<scheme>
             </arg>
             <arg name="trap_port">
                 <title>TRAP listener port</title>
-                <description>TRAP listener port. Defaults to 162</description>
+                <description>TRAP listener port. Defaults to 162.Ensure that you have the necessary OS user permissions for port values 0-1024</description>
                 <required_on_edit>false</required_on_edit>
                 <required_on_create>false</required_on_create>
             </arg>
