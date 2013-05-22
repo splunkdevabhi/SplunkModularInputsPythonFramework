@@ -41,7 +41,7 @@ logging.root.addHandler(handler)
 
 SCHEME = """<scheme>
     <title>SNMP</title>
-    <description>Poll attributes from a device's SNMP interface</description>
+    <description>SNMP input to poll attribute values and catch traps</description>
     <use_external_validation>true</use_external_validation>
     <streaming_mode>xml</streaming_mode>
     <use_single_instance>false</use_single_instance>
