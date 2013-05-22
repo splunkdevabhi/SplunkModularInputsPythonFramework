@@ -27,7 +27,7 @@ from pysnmp.carrier.asynsock.dispatch import AsynsockDispatcher
 from pysnmp.carrier.asynsock.dgram import udp, udp6
 from pyasn1.codec.ber import decoder
 from pysnmp.proto import api
-
+from pysnmp.smi import builder
 
 #set up logging
 logging.root
@@ -247,57 +247,71 @@ def do_run():
         trapThread = TrapThread(trap_port,trap_host,ipv6)
         trapThread.start()
       
-    while not (object_names is None and destination is None):      
+    if not (object_names is None and destination is None):      
         try:
             cmdGen = cmdgen.CommandGenerator()
          
+            mibBuilder = cmdGen.snmpEngine.msgAndPduDsp.mibInstrumController.mibBuilder
+            
+            # load in any custom MIBs
+            mib_egg_dir = SPLUNK_HOME + "/etc/apps/snmp_ta/bin/mibs/"
+            for filename in os.listdir(mib_egg_dir):
+                if filename.endswith(".egg"):
+                    mibSources = mibBuilder.getMibSources() + (builder.ZipMibSource(mib_egg_dir + filename),) 
+                    
+            mibBuilder.setMibSources(*mibSources)
+            
             if ipv6:
                 transport = cmdgen.Udp6TransportTarget((destination, port)) 
             else:
                 transport = cmdgen.UdpTransportTarget((destination, port))  
-                   
-            if do_bulk and not snmp_version == "1":
-                errorIndication, errorStatus, errorIndex, varBindTable = cmdGen.bulkCmd(
+             
+            while True:  
+                     
+                if do_bulk and not snmp_version == "1":
+                    errorIndication, errorStatus, errorIndex, varBindTable = cmdGen.bulkCmd(
                 cmdgen.CommunityData(communitystring,mpModel=mp_model_val),
                 transport,
                 non_repeaters, max_repetitions,
                 *oid_args,lookupNames=True, lookupValues=True)
-            else:
-                errorIndication, errorStatus, errorIndex, varBinds = cmdGen.getCmd(
+                    
+                else:
+                    errorIndication, errorStatus, errorIndex, varBinds = cmdGen.getCmd(
                 cmdgen.CommunityData(communitystring,mpModel=mp_model_val),
                 transport,
                 *oid_args,
                 lookupNames=True, lookupValues=True)
             
             
-            if errorIndication:
-                raise RuntimeError(errorIndication)
-                logging.error(errorIndication)
-            elif errorStatus:
-                raise RuntimeError(errorStatus)
-                logging.error(errorStatus)
-            else:
-                splunkevent =""
+                if errorIndication:
+                    raise RuntimeError(errorIndication)
+                    logging.error(errorIndication)
+                elif errorStatus:
+                    raise RuntimeError(errorStatus)
+                    logging.error(errorStatus)
+                else:
+                    splunkevent =""
                 
-                if do_bulk:
-                    for varBindTableRow in varBindTable:
-                        for name, val in varBindTableRow:
-                            splunkevent += '%s = "%s" ' % (name.prettyPrint(), val.prettyPrint()) 
-                else:    
-                    for name, val in varBinds:
-                        splunkevent += '%s = "%s" ' % (name.prettyPrint(), val.prettyPrint())
+                    if do_bulk:
+                        for varBindTableRow in varBindTable:
+                            for name, val in varBindTableRow:
+                                splunkevent += '%s = "%s" ' % (name.prettyPrint(), val.prettyPrint()) 
+                    else:    
+                        for name, val in varBinds:
+                            splunkevent += '%s = "%s" ' % (name.prettyPrint(), val.prettyPrint())
                    
                    
                     
-                print_xml_single_instance_mode(splunkevent)
-                sys.stdout.flush()         
+                    print_xml_single_instance_mode(splunkevent)
+                    sys.stdout.flush() 
+                    
+                time.sleep(float(snmpinterval))        
             
         except RuntimeError,e:
             logging.error("Looks like an error: %s" % str(e))
             sys.exit(1)
             raise    
-                    
-        time.sleep(float(snmpinterval))
+ 
         
 class TrapThread(threading.Thread):
     
