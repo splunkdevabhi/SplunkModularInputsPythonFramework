@@ -11,16 +11,17 @@ import xml.dom.minidom, xml.sax.saxutils
 import time
 import threading
 
-#dynamically load in any eggs in /etc/apps/snmp_ta/bin
 SPLUNK_HOME = os.environ.get("SPLUNK_HOME")
-#sys.path.append(SPLUNK_HOME + "/etc/apps/snmp_ta/bin/pyasn1-0.1.6-py2.7.egg")
-#sys.path.append(SPLUNK_HOME + "/etc/apps/snmp_ta/bin/pysnmp-4.2.4-py2.7.egg")
-#sys.path.append(SPLUNK_HOME + "/etc/apps/snmp_ta/bin/pysnmp_mibs-0.1.4-py2.7.egg")
+
+#dynamically load in any eggs in /etc/apps/snmp_ta/bin
 egg_dir = SPLUNK_HOME + "/etc/apps/snmp_ta/bin/"
 for filename in os.listdir(egg_dir):
     if filename.endswith(".egg"):
        sys.path.append(egg_dir + filename) 
 
+#directory of the custom MIB eggs
+mib_egg_dir = SPLUNK_HOME + "/etc/apps/snmp_ta/bin/mibs"
+sys.path.append(mib_egg_dir)
 
 from pysnmp.entity.rfc3413.oneliner import cmdgen
 from pysnmp.carrier.asynsock.dispatch import AsynsockDispatcher
@@ -243,24 +244,24 @@ def do_run():
     trap_port=int(config.get("trap_port",162))
     trap_host=config.get("trap_host","localhost")
     
-    if listen_traps and (snmp_version == "1" or "2C") :
+    #load in custom MIBS
+    cmdGen = cmdgen.CommandGenerator()
+         
+    mibBuilder = cmdGen.snmpEngine.msgAndPduDsp.mibInstrumController.mibBuilder
+                       
+    for filename in os.listdir(mib_egg_dir):
+       if filename.endswith(".egg"):
+           mibSources = mibBuilder.getMibSources() + (builder.ZipMibSource(filename),) 
+                    
+    mibBuilder.setMibSources(*mibSources)
+        
+    if listen_traps and (snmp_version == "1" or snmp_version == "2C") :
         trapThread = TrapThread(trap_port,trap_host,ipv6)
         trapThread.start()
       
     if not (object_names is None and destination is None):      
         try:
-            cmdGen = cmdgen.CommandGenerator()
-         
-            mibBuilder = cmdGen.snmpEngine.msgAndPduDsp.mibInstrumController.mibBuilder
-            
-            # load in any custom MIBs
-            mib_egg_dir = SPLUNK_HOME + "/etc/apps/snmp_ta/bin/mibs/"
-            for filename in os.listdir(mib_egg_dir):
-                if filename.endswith(".egg"):
-                    mibSources = mibBuilder.getMibSources() + (builder.ZipMibSource(mib_egg_dir + filename),) 
-                    
-            mibBuilder.setMibSources(*mibSources)
-            
+                       
             if ipv6:
                 transport = cmdgen.Udp6TransportTarget((destination, port)) 
             else:
@@ -327,11 +328,13 @@ class TrapThread(threading.Thread):
         transportDispatcher.registerRecvCbFun(trapCallback)
         if self.ipv6:
             transport = udp.Udp6SocketTransport()
+            domainName = udp6.domainName
         else:
             transport = udp.UdpSocketTransport()  
+            domainName = udp.domainName
                 
         try:     
-            transportDispatcher.registerTransport(udp.domainName, transport.openServerMode((self.host, self.port)))
+            transportDispatcher.registerTransport(domainName, transport.openServerMode((self.host, self.port)))
       
             transportDispatcher.jobStarted(1)
             # Dispatcher will never finish as job#1 never reaches zero

@@ -1,8 +1,8 @@
-## Splunk SNMP Modular Input v1.0beta
+## Splunk SNMP Modular Input v1.0.1beta
 
 ## Overview
 
-This is a Splunk modular input add-on for polling SNMP attributes.
+This is a Splunk modular input add-on for polling SNMP attributes and catching traps.
 
 ## Features
 
