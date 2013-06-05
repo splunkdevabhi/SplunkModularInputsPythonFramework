@@ -7,7 +7,7 @@ All Rights Reserved
 '''
 
 import sys,logging,os,time
-import xml.dom.minidom, xml.sax.saxutils
+import xml.dom.minidom
 
 SPLUNK_HOME = os.environ.get("SPLUNK_HOME")
 
@@ -42,7 +42,7 @@ SCHEME = """<scheme>
     <title>REST</title>
     <description>REST API input for polling data from RESTful endpoints</description>
     <use_external_validation>true</use_external_validation>
-    <streaming_mode>simple</streaming_mode>
+    <streaming_mode>xml</streaming_mode>
     <use_single_instance>false</use_single_instance>
 
     <endpoint>
@@ -150,7 +150,7 @@ SCHEME = """<scheme>
             </arg>
             <arg name="response_type">
                 <title>Response Type</title>
-                <description>Rest Data Response Type : json | text</description>
+                <description>Rest Data Response Type : json | xml | text</description>
                 <required_on_edit>false</required_on_edit>
                 <required_on_create>false</required_on_create>
             </arg>
@@ -246,7 +246,7 @@ def do_run():
         url_args = dict((k.strip(), v.strip()) for k,v in 
               (item.split('=') for item in url_args_str.split(',')))
         
-    #json | text    
+    #json | xml | text    
     response_type=config.get("response_type","text")
     
     streaming_request=int(config.get("streaming_request",0))
@@ -291,7 +291,7 @@ def do_run():
    
    
         req_args = {"verify" : False ,"stream" : bool(streaming_request) , "timeout" : float(request_timeout)}
-        
+
         if auth:
             req_args["auth"]= auth
         if url_args:
@@ -315,17 +315,11 @@ def do_run():
                 if streaming_request:
                     for line in r.iter_lines():
                         if line:
-                            if response_type == "json":
-                                handle_output(json.loads(line))
-                            else:  
-                                handle_output(line)  
-                else:    
-                    if response_type == "json":
-                        handle_output(r.json())            
-                    else:
-                        handle_output(r.text)
+                            handle_output(line)  
+                else:                    
+                    handle_output(r.text)
             except requests.exceptions.HTTPError,e:
-                error_output = r.text()
+                error_output = r.text
                 error_http_code = r.status_code
                 if index_error_response_codes:
                     error_event=""
@@ -348,25 +342,36 @@ def oauth2_token_updater(token):
             
 def handle_output(output): 
     
-    print_simple(output)
-    sys.stdout.flush()  
-    
+    try:
+        print_xml_single_instance_mode(output)
+        sys.stdout.flush()  
+    except RuntimeError,e:
+        logging.error("Looks like an error writing out the event to Splunk: %s" % str(e))
+
 # prints validation error data to be consumed by Splunk
 def print_validation_error(s):
-    print "<error><message>%s</message></error>" % xml.sax.saxutils.escape(s)
+    print "<error><message>%s</message></error>" % encodeXMLText(s)
     
 # prints XML stream
 def print_xml_single_instance_mode(s):
-    print "<stream><event><data>%s</data></event></stream>" % xml.sax.saxutils.escape(s)
+    print "<stream><event><data>%s</data></event></stream>" % encodeXMLText(s)
     
 # prints XML stream
 def print_xml_multi_instance_mode(s,stanza):
-    print "<stream><event stanza=""%s""><data>%s</data></event></stream>" % stanza,xml.sax.saxutils.escape(s)
+    print "<stream><event stanza=""%s""><data>%s</data></event></stream>" % stanza,encodeXMLText(s)
     
 # prints simple stream
 def print_simple(s):
     print "%s\n" % s
-    
+
+def encodeXMLText(text):
+    text = text.replace("&", "&amp;")
+    text = text.replace("\"", "&quot;")
+    text = text.replace("'", "&apos;")
+    text = text.replace("<", "&lt;")
+    text = text.replace(">", "&gt;")
+    return text
+  
 def usage():
     print "usage: %s [--scheme|--validate-arguments]"
     logging.error("Incorrect Program Usage")

@@ -185,6 +185,7 @@
 					<options>
 						<opt value="text" label="text" />
 						<opt value="json" label="json" />
+                                                <opt value="xml" label="xml" />
 					</options>
 				</element>
 				<element name="streaming_request" type="checkbox" label="Streaming Request ?">
