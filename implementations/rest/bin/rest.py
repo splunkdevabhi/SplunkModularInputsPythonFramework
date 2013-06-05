@@ -42,7 +42,7 @@ SCHEME = """<scheme>
     <title>REST</title>
     <description>REST API input for polling data from RESTful endpoints</description>
     <use_external_validation>true</use_external_validation>
-    <streaming_mode>xml</streaming_mode>
+    <streaming_mode>simple</streaming_mode>
     <use_single_instance>false</use_single_instance>
 
     <endpoint>
@@ -290,7 +290,7 @@ def do_run():
             auth = OAuth2(client, token=token,auto_refresh_url=oauth2_refresh_url,token_updater=oauth2_token_updater)
    
    
-        req_args = {"verify" : False ,"stream" : bool(streaming_request) , "timeout" : request_timeout}
+        req_args = {"verify" : False ,"stream" : bool(streaming_request) , "timeout" : float(request_timeout)}
         
         if auth:
             req_args["auth"]= auth
@@ -300,9 +300,10 @@ def do_run():
             req_args["headers"]= http_header_propertys
         if proxies:
             req_args["proxies"]= proxies
+
             
         while True:
-               
+            
             try:
                 r = requests.get(endpoint,**req_args)
             except requests.exceptions.Timeout,e:
@@ -320,7 +321,7 @@ def do_run():
                                 handle_output(line)  
                 else:    
                     if response_type == "json":
-                        handle_output(r.json())
+                        handle_output(r.json())            
                     else:
                         handle_output(r.text)
             except requests.exceptions.HTTPError,e:
@@ -334,9 +335,7 @@ def do_run():
                 logging.error("HTTP Request error: %s" % str(e))
                 time.sleep(float(backoff_time))
                 continue
-            
-              
-            
+                                 
             time.sleep(float(polling_interval))
             
     except RuntimeError,e:
@@ -344,12 +343,12 @@ def do_run():
         sys.exit(2) 
 
 def oauth2_token_updater(token):
-  #TODO , persist updated token back to input stanza via REST
+  #TODO , persist updated token back to input stanza via REST ???
   foo={}
             
 def handle_output(output): 
     
-    print_xml_single_instance_mode(output)
+    print_simple(output)
     sys.stdout.flush()  
     
 # prints validation error data to be consumed by Splunk
