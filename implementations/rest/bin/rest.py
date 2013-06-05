@@ -272,7 +272,7 @@ def do_run():
     
     
     try: 
-
+        auth=None
         if auth_type == "basic":
             auth = HTTPBasicAuth(auth_user, auth_password)
         elif auth_type == "digest":
