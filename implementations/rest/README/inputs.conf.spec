@@ -3,7 +3,7 @@
 * REST API Endpoint URL
 endpoint= <value>
 
-* Authentication type [none | basic | digest | oauth1 | oauth2 ]
+* Authentication type [none | basic | digest | oauth1 | oauth2 | custom ]
 auth_type= <value>
 
 * for basic/digest
@@ -53,6 +53,23 @@ polling_interval= <value>
 
 * whether or not to index http error response codes
 index_error_response_codes= <value>
+
+*Python classname of custom response handler
+response_handler= <value>
+
+*Response Handler arguments string ,  key=value,key2=value2
+response_handler_args= <value>
+
+*Python Regex pattern, if present , the response will be scanned for this match pattern, and indexed if a match is present
+response_filter_pattern = <value>
+
+*Python classname of custom auth handler
+custom_auth_handler= <value>
+
+*Custom Authentication Handler arguments string ,  key=value,key2=value2
+custom_auth_handler_args= <value>
+
+
 
 
 

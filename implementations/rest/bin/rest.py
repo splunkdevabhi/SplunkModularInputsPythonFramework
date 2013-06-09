@@ -6,21 +6,23 @@ All Rights Reserved
 
 '''
 
-import sys,logging,os,time
+import sys,logging,os,time,re
 import xml.dom.minidom
 
 SPLUNK_HOME = os.environ.get("SPLUNK_HOME")
 
+RESPONSE_HANDLER_INSTANCE = None
+SPLUNK_PORT = 8089
+STANZA = None
+SESSION_TOKEN = None
+REGEX_PATTERN = None
 
 #dynamically load in any eggs in /etc/apps/snmp_ta/bin
-egg_dir = SPLUNK_HOME + "/etc/apps/rest_ta/bin/"
+EGG_DIR = SPLUNK_HOME + "/etc/apps/rest_ta/bin/"
 
-sys.path.append(egg_dir + "uuid-1.30")
-sys.path.append(egg_dir + "splunklib")
-
-for filename in os.listdir(egg_dir):
+for filename in os.listdir(EGG_DIR):
     if filename.endswith(".egg"):
-        sys.path.append(egg_dir + filename) 
+        sys.path.append(EGG_DIR + filename) 
        
 import requests,json
 from requests.auth import HTTPBasicAuth
@@ -28,6 +30,9 @@ from requests.auth import HTTPDigestAuth
 from requests_oauthlib import OAuth1
 from requests_oauthlib import OAuth2
 from oauthlib.oauth2 import WebApplicationClient 
+from requests.auth import AuthBase
+from splunklib.client import connect
+from splunklib.client import Service
            
 #set up logging
 logging.root
@@ -60,7 +65,7 @@ SCHEME = """<scheme>
             </arg>
             <arg name="auth_type">
                 <title>Authentication Type</title>
-                <description>Authentication method to use : none | basic | digest | oauth1 | oauth2</description>
+                <description>Authentication method to use : none | basic | digest | oauth1 | oauth2 | custom</description>
                 <required_on_edit>false</required_on_edit>
                 <required_on_create>true</required_on_create>
             </arg>
@@ -196,6 +201,36 @@ SCHEME = """<scheme>
                 <required_on_edit>false</required_on_edit>
                 <required_on_create>false</required_on_create>
             </arg>
+            <arg name="response_handler">
+                <title>Response Handler</title>
+                <description>Python classname of custom response handler</description>
+                <required_on_edit>false</required_on_edit>
+                <required_on_create>false</required_on_create>
+            </arg>
+            <arg name="response_handler_args">
+                <title>Response Handler Arguments</title>
+                <description>Response Handler arguments string ,  key=value,key2=value2</description>
+                <required_on_edit>false</required_on_edit>
+                <required_on_create>false</required_on_create>
+            </arg>
+            <arg name="response_filter_pattern">
+                <title>Response Filter Pattern</title>
+                <description>Python Regex pattern, if present , responses must match this pattern to be indexed</description>
+                <required_on_edit>false</required_on_edit>
+                <required_on_create>false</required_on_create>
+            </arg>
+            <arg name="custom_auth_handler">
+                <title>Custom_Auth Handler</title>
+                <description>Python classname of custom auth handler</description>
+                <required_on_edit>false</required_on_edit>
+                <required_on_create>false</required_on_create>
+            </arg>
+            <arg name="custom_auth_handler_args">
+                <title>Custom_Auth Handler Arguments</title>
+                <description>Custom Authentication Handler arguments string ,  key=value,key2=value2</description>
+                <required_on_edit>false</required_on_edit>
+                <required_on_create>false</required_on_create>
+            </arg>
         </args>
     </endpoint>
 </scheme>
@@ -209,6 +244,16 @@ def do_validate():
 def do_run():
     
     config = get_input_config() 
+    
+    #setup some globals
+    server_uri = config.get("server_uri")
+    global SPLUNK_PORT
+    global STANZA
+    global SESSION_TOKEN 
+    SPLUNK_PORT = server_uri[18:]
+    STANZA = config.get("name")
+    SESSION_TOKEN = config.get("session_key")
+   
     #params
     
     endpoint=config.get("endpoint")
@@ -270,6 +315,36 @@ def do_run():
     
     index_error_response_codes=int(config.get("index_error_response_codes",0))
     
+    response_filter_pattern=config.get("response_filter_pattern")
+    
+    if response_filter_pattern:
+        global REGEX_PATTERN
+        REGEX_PATTERN = re.compile(response_filter_pattern)
+        
+    response_handler_args={} 
+    response_handler_args_str=config.get("response_handler_args")
+    if not response_handler_args_str is None:
+        response_handler_args = dict((k.strip(), v.strip()) for k,v in 
+              (item.split('=') for item in response_handler_args_str.split(',')))
+        
+    response_handler=config.get("response_handler","DefaultResponseHandler")
+    module = __import__("responsehandlers")
+    class_ = getattr(module,response_handler)
+
+    global RESPONSE_HANDLER_INSTANCE
+    RESPONSE_HANDLER_INSTANCE = class_(**response_handler_args)
+   
+    custom_auth_handler=config.get("custom_auth_handler")
+    
+    if custom_auth_handler:
+        module = __import__("authhandlers")
+        class_ = getattr(module,response_handler)
+        custom_auth_handler_args={} 
+        custom_auth_handler_args_str=config.get("custom_auth_handler_args")
+        if not custom_auth_handler_args_str is None:
+            custom_auth_handler_args = dict((k.strip(), v.strip()) for k,v in (item.split('=') for item in custom_auth_handler_args_str.split(',')))
+        CUSTOM_AUTH_HANDLER_INSTANCE = class_(**custom_auth_handler_args)
+    
     
     try: 
         auth=None
@@ -288,7 +363,8 @@ def do_run():
             token["expires_in"] = oauth2_expires_in
             client = WebApplicationClient(oauth2_client_id)
             auth = OAuth2(client, token=token,auto_refresh_url=oauth2_refresh_url,token_updater=oauth2_token_updater)
-   
+        elif auth_type == "custom" and CUSTOM_AUTH_HANDLER_INSTANCE:
+            auth = CUSTOM_AUTH_HANDLER_INSTANCE
    
         req_args = {"verify" : False ,"stream" : bool(streaming_request) , "timeout" : float(request_timeout)}
 
@@ -315,9 +391,9 @@ def do_run():
                 if streaming_request:
                     for line in r.iter_lines():
                         if line:
-                            handle_output(line)  
+                            handle_output(r,line,response_type)  
                 else:                    
-                    handle_output(r.text)
+                    handle_output(r,r.text,response_type)
             except requests.exceptions.HTTPError,e:
                 error_output = r.text
                 error_http_code = r.status_code
@@ -337,16 +413,27 @@ def do_run():
         sys.exit(2) 
 
 def oauth2_token_updater(token):
-  #TODO , persist updated token back to input stanza via REST ???
-  foo={}
-            
-def handle_output(output): 
     
     try:
-        print_xml_single_instance_mode(output)
-        sys.stdout.flush()  
+        args = {'host':'localhost','port':SPLUNK_PORT,'token':SESSION_TOKEN}
+        service = Service(**args)   
+        item = service.inputs.__getitem__(STANZA[7:])
+        item.update(oauth2_access_token=token["access_token"])
     except RuntimeError,e:
-        logging.error("Looks like an error writing out the event to Splunk: %s" % str(e))
+        logging.error("Looks like an error updating the oauth2 token: %s" % str(e))
+
+            
+def handle_output(response,output,type): 
+    
+    try:
+        if REGEX_PATTERN:
+            search_result = REGEX_PATTERN.search(output)
+            if search_result == None:
+                return   
+        RESPONSE_HANDLER_INSTANCE(response,output,type)
+        sys.stdout.flush()               
+    except RuntimeError,e:
+        logging.error("Looks like an error handle the response output: %s" % str(e))
 
 # prints validation error data to be consumed by Splunk
 def print_validation_error(s):
@@ -355,10 +442,6 @@ def print_validation_error(s):
 # prints XML stream
 def print_xml_single_instance_mode(s):
     print "<stream><event><data>%s</data></event></stream>" % encodeXMLText(s)
-    
-# prints XML stream
-def print_xml_multi_instance_mode(s,stanza):
-    print "<stream><event stanza=""%s""><data>%s</data></event></stream>" % stanza,encodeXMLText(s)
     
 # prints simple stream
 def print_simple(s):
@@ -391,6 +474,17 @@ def get_input_config():
         # parse the config XML
         doc = xml.dom.minidom.parseString(config_str)
         root = doc.documentElement
+        
+        session_key_node = root.getElementsByTagName("session_key")[0]
+        if session_key_node and session_key_node.firstChild and session_key_node.firstChild.nodeType == session_key_node.firstChild.TEXT_NODE:
+            data = session_key_node.firstChild.data
+            config["session_key"] = data 
+            
+        server_uri_node = root.getElementsByTagName("server_uri")[0]
+        if server_uri_node and server_uri_node.firstChild and server_uri_node.firstChild.nodeType == server_uri_node.firstChild.TEXT_NODE:
+            data = server_uri_node.firstChild.data
+            config["server_uri"] = data   
+            
         conf_node = root.getElementsByTagName("configuration")[0]
         if conf_node:
             logging.debug("XML: found configuration")
