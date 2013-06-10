@@ -1,3 +1,5 @@
+from requests.auth import AuthBase
+
 #add your custom auth handler class to this module
 
 class MyCustomAuth(AuthBase):

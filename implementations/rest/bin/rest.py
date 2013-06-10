@@ -338,7 +338,7 @@ def do_run():
     
     if custom_auth_handler:
         module = __import__("authhandlers")
-        class_ = getattr(module,response_handler)
+        class_ = getattr(module,custom_auth_handler)
         custom_auth_handler_args={} 
         custom_auth_handler_args_str=config.get("custom_auth_handler_args")
         if not custom_auth_handler_args_str is None:
