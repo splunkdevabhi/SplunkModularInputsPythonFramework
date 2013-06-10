@@ -135,9 +135,21 @@ SCHEME = """<scheme>
                 <required_on_edit>false</required_on_edit>
                 <required_on_create>false</required_on_create>
             </arg>
+            <arg name="oauth2_refresh_props">
+                <title>OAUTH 2 Token Refresh Propertys</title>
+                <description>OAUTH 2 token refresh propertys :  : key=value,key2=value2</description>
+                <required_on_edit>false</required_on_edit>
+                <required_on_create>false</required_on_create>
+            </arg>
             <arg name="oauth2_client_id">
                 <title>OAUTH 2 Client ID</title>
                 <description>OAUTH 2 client ID</description>
+                <required_on_edit>false</required_on_edit>
+                <required_on_create>false</required_on_create>
+            </arg>
+            <arg name="oauth2_client_secret">
+                <title>OAUTH 2 Client Secret</title>
+                <description>OAUTH 2 client secret</description>
                 <required_on_edit>false</required_on_edit>
                 <required_on_create>false</required_on_create>
             </arg>
@@ -277,8 +289,17 @@ def do_run():
     oauth2_expires_in=config.get("oauth2_expires_in")
     oauth2_refresh_token=config.get("oauth2_refresh_token")
     oauth2_refresh_url=config.get("oauth2_refresh_url")
-    oauth2_client_id=config.get("oauth2_client_id","splunk_rest")
+    oauth2_refresh_props_str=config.get("oauth2_refresh_props")
+    oauth2_client_id=config.get("oauth2_client_id")
+    oauth2_client_secret=config.get("oauth2_client_secret")
     
+    oauth2_refresh_props={}
+    if not oauth2_refresh_props_str is None:
+        oauth2_refresh_props = dict((k.strip(), v.strip()) for k,v in 
+              (item.split('=') for item in oauth2_refresh_props_str.split(',')))
+    oauth2_refresh_props['client_id'] = oauth2_client_id
+    oauth2_refresh_props['client_secret'] = oauth2_client_secret
+        
     http_header_propertys={}
     http_header_propertys_str=config.get("http_header_propertys")
     if not http_header_propertys_str is None:
@@ -348,6 +369,7 @@ def do_run():
     
     try: 
         auth=None
+        oauth2=None
         if auth_type == "basic":
             auth = HTTPBasicAuth(auth_user, auth_password)
         elif auth_type == "digest":
@@ -362,7 +384,7 @@ def do_run():
             token["refresh_token"] = oauth2_refresh_token
             token["expires_in"] = oauth2_expires_in
             client = WebApplicationClient(oauth2_client_id)
-            oauth2 = OAuth2Session(client, token=token,auto_refresh_url=oauth2_refresh_url,token_updater=oauth2_token_updater)
+            oauth2 = OAuth2Session(client, token=token,auto_refresh_url=oauth2_refresh_url,auto_refresh_kwargs=oauth2_refresh_props,token_updater=oauth2_token_updater)
         elif auth_type == "custom" and CUSTOM_AUTH_HANDLER_INSTANCE:
             auth = CUSTOM_AUTH_HANDLER_INSTANCE
    

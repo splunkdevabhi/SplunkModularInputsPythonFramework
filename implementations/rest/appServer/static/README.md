@@ -5,6 +5,48 @@
 This is a Splunk modular input add-on for polling REST APIs.
 
 
+## Features
+
+* Perform HTTP(s) GET requests to REST endpoints and output the responses to Splunk
+* Multiple authentication mechanisms
+* Add custom HTTP(s) Header properties
+* Add custom URL arguments
+* HTTP(s) Streaming Requests
+* HTTP(s) Proxy support
+* Response regex patterns to filter out responses
+* Configurable polling interval
+* Configurable timeouts
+* Configurable indexing of error codes
+
+# Authentication
+
+The following authentication mechanisms are supported:
+
+* None
+* HTTP Basic
+* HTTP Digest
+* OAuth1
+* OAuth2 (with auto refresh of the access token)
+* Custom
+
+
+# Custom Authentication Handlers
+
+You can provide your own custom Authentication Handler. This is a Python class that you should add to the 
+rest_ta/bin/authhandlers.py module.
+
+http://docs.python-requests.org/en/latest/user/advanced/#custom-authentication
+
+You can then declare this class name and any parameters in the REST Input setup page.
+
+# Custom Response Handlers
+
+You can provide your own custom Response Handler. This is a Python class that you should add to the 
+rest_ta/bin/responsehandlers.py module.
+
+You can then declare this class name and any parameters in the REST Input setup page.
+
+
 ## Dependencies
 
 * Splunk 5.0+
@@ -14,6 +56,7 @@ This is a Splunk modular input add-on for polling REST APIs.
 
 * Untar the release to your $SPLUNK_HOME/etc/apps directory
 * Restart Splunk
+* Browse to Manager -> Data Inputs -> REST and setup your inputs
 
 
 ## Logging
@@ -25,6 +68,9 @@ Any log entries/errors will get written to $SPLUNK_HOME/var/log/splunk/splunkd.l
 
 * You are using Splunk 5+
 * Look for any errors in $SPLUNK_HOME/var/log/splunk/splunkd.log
+* Any firewalls blocking outgoing HTTP calls
+* Is your REST URL, headers, url arguments correct
+* Is you authentication setup correctly
 
 ## Contact
 

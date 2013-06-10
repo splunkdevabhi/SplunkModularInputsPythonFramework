@@ -24,7 +24,9 @@ oauth2_access_token= <value>
 oauth2_expires_in= <value>
 oauth2_refresh_token= <value>
 oauth2_refresh_url= <value>
+oauth2_refresh_props= <value>
 oauth2_client_id= <value>
+oauth2_client_secret= <value>
 
 * prop=value, prop2=value2
 http_header_propertys= <value>

@@ -180,11 +180,24 @@
 							<view name="create" />
 							<key name="exampleText">OAUTH 2 token refresh URL</key>
 						</element>
+						<element name="oauth2_refresh_props" type="textfield"
+							label="OAUTH 2 Token Refresh Properties">
+
+							<view name="edit" />
+							<view name="create" />
+							<key name="exampleText">OAUTH 2 token refresh propertys :  key=value,key2=value2</key>
+						</element>
 						<element name="oauth2_client_id" type="textfield" label="OAUTH 2 Client ID">
 
 							<view name="edit" />
 							<view name="create" />
-							<key name="exampleText">OAUTH 2 client ID, defaults to "splunk_rest"</key>
+							<key name="exampleText">OAUTH 2 client ID</key>
+						</element>
+						<element name="oauth2_client_secret" type="textfield" label="OAUTH 2 Client Secret">
+
+							<view name="edit" />
+							<view name="create" />
+							<key name="exampleText">OAUTH 2 client secret</key>
 						</element>
 					</elements>
 
