@@ -28,7 +28,7 @@ import requests,json
 from requests.auth import HTTPBasicAuth
 from requests.auth import HTTPDigestAuth
 from requests_oauthlib import OAuth1
-from requests_oauthlib import OAuth2
+from requests_oauthlib import OAuth2Session
 from oauthlib.oauth2 import WebApplicationClient 
 from requests.auth import AuthBase
 from splunklib.client import connect
@@ -362,7 +362,7 @@ def do_run():
             token["refresh_token"] = oauth2_refresh_token
             token["expires_in"] = oauth2_expires_in
             client = WebApplicationClient(oauth2_client_id)
-            auth = OAuth2(client, token=token,auto_refresh_url=oauth2_refresh_url,token_updater=oauth2_token_updater)
+            oauth2 = OAuth2Session(client, token=token,auto_refresh_url=oauth2_refresh_url,token_updater=oauth2_token_updater)
         elif auth_type == "custom" and CUSTOM_AUTH_HANDLER_INSTANCE:
             auth = CUSTOM_AUTH_HANDLER_INSTANCE
    
@@ -381,7 +381,10 @@ def do_run():
         while True:
             
             try:
-                r = requests.get(endpoint,**req_args)
+                if oauth2:
+                    r = oauth2.get(endpoint,**req_args)
+                else:
+                    r = requests.get(endpoint,**req_args)
             except requests.exceptions.Timeout,e:
                 logging.error("HTTP Request Timeout error: %s" % str(e))
                 time.sleep(float(backoff_time))
@@ -418,7 +421,7 @@ def oauth2_token_updater(token):
         args = {'host':'localhost','port':SPLUNK_PORT,'token':SESSION_TOKEN}
         service = Service(**args)   
         item = service.inputs.__getitem__(STANZA[7:])
-        item.update(oauth2_access_token=token["access_token"])
+        item.update(oauth2_access_token=token["access_token"],oauth2_refresh_token=token["refresh_token"],oauth2_expires_in=token["expires_in"])
     except RuntimeError,e:
         logging.error("Looks like an error updating the oauth2 token: %s" % str(e))
 
