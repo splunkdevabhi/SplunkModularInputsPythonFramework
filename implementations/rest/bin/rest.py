@@ -137,7 +137,7 @@ SCHEME = """<scheme>
             </arg>
             <arg name="oauth2_refresh_props">
                 <title>OAUTH 2 Token Refresh Propertys</title>
-                <description>OAUTH 2 token refresh propertys :  : key=value,key2=value2</description>
+                <description>OAUTH 2 token refresh propertys : key=value,key2=value2</description>
                 <required_on_edit>false</required_on_edit>
                 <required_on_create>false</required_on_create>
             </arg>
