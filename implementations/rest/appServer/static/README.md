@@ -1,4 +1,4 @@
-## Splunk REST API Modular Input v1.0beta
+# Splunk REST API Modular Input v1.0beta
 
 ## Overview
 
@@ -18,7 +18,7 @@ This is a Splunk modular input add-on for polling REST APIs.
 * Configurable timeouts
 * Configurable indexing of error codes
 
-# Authentication
+### Authentication
 
 The following authentication mechanisms are supported:
 
@@ -30,7 +30,7 @@ The following authentication mechanisms are supported:
 * Custom
 
 
-# Custom Authentication Handlers
+### Custom Authentication Handlers
 
 You can provide your own custom Authentication Handler. This is a Python class that you should add to the 
 rest_ta/bin/authhandlers.py module.
@@ -39,7 +39,7 @@ http://docs.python-requests.org/en/latest/user/advanced/#custom-authentication
 
 You can then declare this class name and any parameters in the REST Input setup page.
 
-# Custom Response Handlers
+### Custom Response Handlers
 
 You can provide your own custom Response Handler. This is a Python class that you should add to the 
 rest_ta/bin/responsehandlers.py module.

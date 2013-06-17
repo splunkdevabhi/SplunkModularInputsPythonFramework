@@ -185,7 +185,7 @@
 
 							<view name="edit" />
 							<view name="create" />
-							<key name="exampleText">OAUTH 2 token refresh propertys :  key=value,key2=value2</key>
+							<key name="exampleText">OAUTH 2 token refresh properties :  key=value,key2=value2</key>
 						</element>
 						<element name="oauth2_client_id" type="textfield" label="OAUTH 2 Client ID">
 
@@ -203,11 +203,11 @@
 
 				</element>
 				<element name="http_header_propertys" type="textfield"
-					label="HTTP Header Propertys">
+					label="HTTP Header Properties">
 
 					<view name="edit" />
 					<view name="create" />
-					<key name="exampleText">Custom HTTP header propertys : key=value,key2=value2
+					<key name="exampleText">Custom HTTP header properties : key=value,key2=value2
 					</key>
 				</element>
 				<element name="url_args" type="textfield" label="URL Arguments">
