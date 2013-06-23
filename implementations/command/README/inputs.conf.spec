@@ -6,6 +6,9 @@ command_name= <value>
 *command args
 command_args= <value>
 
+*whether or not command output is streaming or not
+streaming_output = <value>
+
 *in seconds
 execution_interval= <value>
 

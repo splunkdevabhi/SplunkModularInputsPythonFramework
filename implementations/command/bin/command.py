@@ -36,7 +36,7 @@ SCHEME = """<scheme>
             <arg name="command_name">
                 <title>Command Name</title>
                 <description>Name of the system command if on the PATH (ps),  or if not , the full path to the command (/bin/ps)</description>
-                <required_on_edit>false</required_on_edit>
+                <required_on_edit>true</required_on_edit>
                 <required_on_create>true</required_on_create>
             </arg>
             <arg name="command_args">
@@ -44,7 +44,13 @@ SCHEME = """<scheme>
                 <description>Arguments string for the command</description>
                 <required_on_edit>false</required_on_edit>
                 <required_on_create>false</required_on_create>
-            </arg>       
+            </arg> 
+            <arg name="streaming_output">
+                <title>Streaming Output</title>
+                <description>Whether or not the command output is streaming</description>
+                <required_on_edit>false</required_on_edit>
+                <required_on_create>false</required_on_create>
+            </arg>      
             <arg name="execution_interval">
                 <title>Command Execution Interval</title>
                 <description>Interval time in seconds to execute the command</description>
@@ -69,9 +75,59 @@ SCHEME = """<scheme>
 """
 
 def do_validate():
-    config = get_validation_config() 
-    #TODO
-    #if error , print_validation_error & sys.exit(2) 
+    
+    try:
+        config = get_validation_config() 
+        
+        command_name=config.get("command_name")
+        execution_interval=config.get("execution_interval")
+        output_handler=config.get("output_handler")   
+        
+        validationFailed = False
+    
+        try:
+            if not output_handler is None:
+                module = __import__("outputhandlers")
+                class_ = getattr(module,output_handler)
+                instance = class_()
+        except Exception,e:
+            print_validation_error("Output Handler "+output_handler+" can't be instantiated")
+            validationFailed = True
+        try:
+            if not execution_interval is None and int(execution_interval) < 1:
+                print_validation_error("Execution interval must be a positive integer")
+                validationFailed = True
+        except Exception,e:
+            print_validation_error("Execution interval must be an integer")
+            validationFailed = True
+        if not command_name is None and which(command_name) is None:
+            print_validation_error("Command name "+command_name+" does not exist")
+            validationFailed = True
+        if validationFailed:
+            sys.exit(2)
+               
+    except RuntimeError,e:
+        logging.error("Looks like an error: %s" % str(e))
+        sys.exit(1)
+        raise   
+     
+def which(program):
+
+    def is_exe(fpath):
+        return os.path.isfile(fpath) and os.access(fpath, os.X_OK)
+
+    fpath, fname = os.path.split(program)
+    if fpath:
+        if is_exe(program):
+            return program
+    else:
+        for path in os.environ["PATH"].split(os.pathsep):
+            path = path.strip('"')
+            exe_file = os.path.join(path, program)
+            if is_exe(exe_file):
+                return exe_file
+
+    return None
     
 def do_run():
     config = get_input_config()  
@@ -83,6 +139,8 @@ def do_run():
     if command_args:
         command_string = command_string+" "+command_args
         
+    streaming_output=int(config.get("streaming_output",0))
+    
     execution_interval=int(config.get("execution_interval",60))
     
     cmd_output_handler_args={} 
@@ -102,21 +160,25 @@ def do_run():
             
         try:
             proc = run_command(command_string)
+            output_buffer = ""
             while True:
                 line = proc.stdout.readline()
                 if line != '':
-                    handle_output(line.rstrip())
+                    if streaming_output :
+                      handle_output(line.rstrip())
+                    else :
+                      output_buffer = output_buffer + line
                 else:
                     break
+            if not streaming_output:
+                handle_output(output_buffer)    
             time.sleep(float(execution_interval))
         except RuntimeError,e:
             logging.error("Looks like an error: %s" % str(e))
             sys.exit(2) 
         
 def run_command(command):
-    return subprocess.Popen(command,shell=True,bufsize=1,universal_newlines=True,
-            stdout=subprocess.PIPE,
-            stderr=subprocess.STDOUT)
+    return subprocess.Popen(command,shell=True,stdout=subprocess.PIPE,stderr=subprocess.STDOUT)
         
 def handle_output(output): 
     

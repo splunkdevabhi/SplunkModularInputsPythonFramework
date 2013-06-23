@@ -28,6 +28,14 @@
           <view name="create"/>
           <key name="exampleText">Arguments string for the command</key>
         </element>
+        <element name="streaming_output" type="checkbox" label="Streaming Output ?">
+
+					<view name="edit" />
+					<view name="create" />
+					<key name="exampleText">Whether or not the command output is streaming(std out remains open) or not(results received and std out is closed).If it is streaming then "Execution Interval" won't really be relevant.
+					</key>
+
+				</element>
         <element name="execution_interval" type="textfield" label="Command Execution Interval">
           
           <view name="edit"/>
