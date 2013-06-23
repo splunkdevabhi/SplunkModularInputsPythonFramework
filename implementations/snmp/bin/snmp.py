@@ -22,6 +22,10 @@ for filename in os.listdir(egg_dir):
 #directory of the custom MIB eggs
 mib_egg_dir = SPLUNK_HOME + "/etc/apps/snmp_ta/bin/mibs"
 sys.path.append(mib_egg_dir)
+for filename in os.listdir(mib_egg_dir):
+    if filename.endswith(".egg"):
+       sys.path.append(mib_egg_dir + "/"+filename) 
+
 
 from pysnmp.entity.rfc3413.oneliner import cmdgen
 from pysnmp.carrier.asynsock.dispatch import AsynsockDispatcher
@@ -29,6 +33,8 @@ from pysnmp.carrier.asynsock.dgram import udp, udp6
 from pyasn1.codec.ber import decoder
 from pysnmp.proto import api
 from pysnmp.smi import builder
+from pysnmp.entity.rfc3413 import mibvar
+from pysnmp.smi import view
 
 #set up logging
 logging.root
@@ -101,6 +107,12 @@ SCHEME = """<scheme>
                 <required_on_edit>false</required_on_edit>
                 <required_on_create>false</required_on_create>
             </arg>
+            <arg name="split_bulk_output">
+                <title>Split Bulk Results</title>
+                <description>Whether or not to split up bulk output into individual events. Defaults to false.</description>
+                <required_on_edit>false</required_on_edit>
+                <required_on_create>false</required_on_create>
+            </arg>
             <arg name="non_repeaters">
                 <title>Non Repeaters (for GET BULK)</title>
                 <description>The number of objects that are only expected to return a single GETNEXT instance, not multiple instances. Managers frequently request the value of sysUpTime and only want that instance plus a list of other objects.Defaults to 0</description>
@@ -128,6 +140,12 @@ SCHEME = """<scheme>
             <arg name="trap_host">
                 <title>TRAP listener host</title>
                 <description>TRAP listener host. Defaults to localhost</description>
+                <required_on_edit>false</required_on_edit>
+                <required_on_create>false</required_on_create>
+            </arg>
+            <arg name="mib_names">
+                <title>MIB Names</title>
+                <description>Comma delimited list of MIB names to be applied that you have deployed in the snmp_ta/bin/mibs directory as a Python egg ie: IF-MIB,DNS-SERVER-MIB,BRIDGE-MIB</description>
                 <required_on_edit>false</required_on_edit>
                 <required_on_create>false</required_on_create>
             </arg>
@@ -202,8 +220,8 @@ def trapCallback(transportDispatcher, transportDomain, transportAddress, wholeMs
             else:
                 varBinds = pMod.apiPDU.getVarBindList(reqPDU)
             for oid, val in varBinds:
-                splunkevent +='%s = "%s" ' % (oid.prettyPrint(), val.prettyPrint())
-        
+                (symName, modName), indices = mibvar.oidToMibName(mibView, oid)
+                splunkevent +='%s::%s.%s = %s ' % (modName, symName,'.'.join([ v.prettyPrint() for v in indices]),val.prettyPrint())      
         if splunkevent != "":
             print_xml_single_instance_mode(splunkevent)
             sys.stdout.flush() 
@@ -236,6 +254,7 @@ def do_run():
     
     #GET BULK params
     do_bulk=int(config.get("do_bulk_get",0))
+    split_bulk_output=int(config.get("split_bulk_output",0))
     non_repeaters=int(config.get("non_repeaters",0))
     max_repetitions=int(config.get("max_repetitions",25))
     
@@ -244,6 +263,14 @@ def do_run():
     trap_port=int(config.get("trap_port",162))
     trap_host=config.get("trap_host","localhost")
     
+    #MIBs to load
+    mib_names=config.get("mib_names")
+    mib_names_args=None
+    if not mib_names is None:
+        mib_names_args = map(str,mib_names.split(","))   
+        #trim any whitespace using a list comprehension
+        mib_names_args = [x.strip(' ') for x in mib_names_args]
+        
     #load in custom MIBS
     cmdGen = cmdgen.CommandGenerator()
          
@@ -251,10 +278,15 @@ def do_run():
                        
     for filename in os.listdir(mib_egg_dir):
        if filename.endswith(".egg"):
-           mibSources = mibBuilder.getMibSources() + (builder.ZipMibSource(filename),) 
-                    
+           mibSources = mibBuilder.getMibSources() + (builder.ZipMibSource(filename),)
+         
     mibBuilder.setMibSources(*mibSources)
+    if mib_names_args:
+        mibBuilder.loadModules(*mib_names_args)
         
+    global mibView
+    mibView = view.MibViewController(mibBuilder)
+    
     if listen_traps and (snmp_version == "1" or snmp_version == "2C") :
         trapThread = TrapThread(trap_port,trap_host,ipv6)
         trapThread.start()
@@ -296,15 +328,20 @@ def do_run():
                     if do_bulk:
                         for varBindTableRow in varBindTable:
                             for name, val in varBindTableRow:
-                                splunkevent += '%s = "%s" ' % (name.prettyPrint(), val.prettyPrint()) 
+                                output_element = '%s = "%s" ' % (name.prettyPrint(), val.prettyPrint())                               
+                                if split_bulk_output:
+                                    print_xml_single_instance_mode(output_element)
+                                    sys.stdout.flush()   
+                                else:    
+                                    splunkevent += output_element 
                     else:    
                         for name, val in varBinds:
                             splunkevent += '%s = "%s" ' % (name.prettyPrint(), val.prettyPrint())
                    
                    
-                    
-                    print_xml_single_instance_mode(splunkevent)
-                    sys.stdout.flush() 
+                    if not split_bulk_output:
+                        print_xml_single_instance_mode(splunkevent)
+                        sys.stdout.flush() 
                     
                 time.sleep(float(snmpinterval))        
             

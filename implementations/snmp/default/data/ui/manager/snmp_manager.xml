@@ -16,6 +16,11 @@
           <key name="exampleText">Name of this SNMP input</key>
         </element>
         
+        <element name="attributes" type="fieldset">
+					<key name="legend">SNMP Attribute polling settings</key>
+					<view name="edit" />
+					<view name="create" />
+					<elements>
         <element name="destination" type="textfield" label="Destination">
           <view name="list"/>
           <view name="edit"/>
@@ -44,7 +49,65 @@
             <opt value="1" label="1"/>                    
           </options>
         </element>
+        <element name="communitystring" type="textfield" label="Community String">
+          
+          <view name="edit"/>
+          <view name="create"/>
+          <key name="exampleText">Community String used for SNMP version 1 and 2C authentication.Defaults to "public"</key>
+        </element>
+        <element name="mib_names" type="textfield" label="MIB Names">
+          
+          <view name="edit"/>
+          <view name="create"/>
+          <key name="exampleText">Comma delimited list of MIB names to be applied that you have deployed in the snmp_ta/bin/mibs directory as a Python egg ie: IF-MIB,DNS-SERVER-MIB,BRIDGE-MIB</key>
+        </element>
         
+        <element name="object_names" type="textfield" label="Object Names List">
+         
+          <view name="edit"/>
+          <view name="create"/>
+          <key name="exampleText">1 or more Objects Names , comma delimited , in either textual(iso.org.dod.internet.mgmt.mib-2.system.sysDescr.0) or numerical(1.3.6.1.2.1.1.3.0) format</key>
+        </element>
+        
+        
+        <element name="snmpinterval" type="textfield" label="Interval">
+          <view name="list"/>
+          <view name="edit"/>
+          <view name="create"/>
+          <key name="exampleText">How often to run the SNMP query (in seconds). Defaults to 60 seconds</key>
+        </element>
+        <element name="do_bulk_get" type="checkbox" label="Perform GET BULK">
+          <view name="list"/>
+          <view name="edit"/>
+          <view name="create"/>
+          <key name="exampleText">Whether or not to perform an SNMP GET BULK operation.This will retrieve all the object attributes in the sub tree of the declared OIDs.Be aware of potential performance issues , http://www.net-snmp.org/wiki/index.php/GETBULK. Defaults to false.</key>
+        </element>
+        <element name="split_bulk_output" type="checkbox" label="Split Bulk Results">
+          <view name="edit"/>
+          <view name="create"/>
+          <key name="exampleText">Whether or not to split up bulk output into individual events. Defaults to false.</key>
+        </element>
+        <element name="non_repeaters" type="textfield" label="Non Repeaters (for GET BULK)">
+          
+          <view name="edit"/>
+          <view name="create"/>
+          <key name="exampleText">The number of objects that are only expected to return a single GETNEXT instance, not multiple instances. Managers frequently request the value of sysUpTime and only want that instance plus a list of other objects.Defaults to 0.</key>
+        </element>
+        <element name="max_repetitions" type="textfield" label="Max Repetitions (for GET BULK)">
+          
+          <view name="edit"/>
+          <view name="create"/>
+          <key name="exampleText">The number of objects that should be returned for all the repeating OIDs. Agent's must truncate the list to something shorter if it won't fit within the max-message size supported by the command generator or the agent.Defaults to 25.</key>
+        </element>
+        
+        </elements>
+    </element>
+        
+        <element name="traps" type="fieldset">
+					<key name="legend">SNMP Trap listener settings</key>
+					<view name="edit" />
+					<view name="create" />
+					<elements>
         <element name="listen_traps" type="checkbox" label="Listen for TRAP messages">
           <view name="list"/>
           <view name="edit"/>
@@ -63,44 +126,8 @@
           <view name="create"/>
           <key name="exampleText">TRAP listener port. Defaults to 162. Ensure that you have the necessary OS user permissions for port values 0-1024</key>
         </element>
-        
-        <element name="object_names" type="textfield" label="Object Names List">
-         
-          <view name="edit"/>
-          <view name="create"/>
-          <key name="exampleText">1 or more Objects Names , comma delimited , in either textual(iso.org.dod.internet.mgmt.mib-2.system.sysDescr.0) or numerical(1.3.6.1.2.1.1.3.0) format</key>
-        </element>
-        
-        <element name="communitystring" type="textfield" label="Community String">
-          
-          <view name="edit"/>
-          <view name="create"/>
-          <key name="exampleText">Community String used for SNMP version 1 and 2C authentication.Defaults to "public"</key>
-        </element>
-        <element name="snmpinterval" type="textfield" label="Interval">
-          <view name="list"/>
-          <view name="edit"/>
-          <view name="create"/>
-          <key name="exampleText">How often to run the SNMP query (in seconds). Defaults to 60 seconds</key>
-        </element>
-        <element name="do_bulk_get" type="checkbox" label="Perform GET BULK">
-          <view name="list"/>
-          <view name="edit"/>
-          <view name="create"/>
-          <key name="exampleText">Whether or not to perform an SNMP GET BULK operation.This will retrieve all the object attributes in the sub tree of the declared OIDs.Be aware of potential performance issues , http://www.net-snmp.org/wiki/index.php/GETBULK. Defaults to false.</key>
-        </element>
-        <element name="non_repeaters" type="textfield" label="Non Repeaters (for GET BULK)">
-          
-          <view name="edit"/>
-          <view name="create"/>
-          <key name="exampleText">The number of objects that are only expected to return a single GETNEXT instance, not multiple instances. Managers frequently request the value of sysUpTime and only want that instance plus a list of other objects.Defaults to 0.</key>
-        </element>
-        <element name="max_repetitions" type="textfield" label="Max Repetitions (for GET BULK)">
-          
-          <view name="edit"/>
-          <view name="create"/>
-          <key name="exampleText">The number of objects that should be returned for all the repeating OIDs. Agent's must truncate the list to something shorter if it won't fit within the max-message size supported by the command generator or the agent.Defaults to 25.</key>
-        </element>
+         </elements>
+    </element>
         
       </elements>
     </element>

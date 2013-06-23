@@ -18,6 +18,9 @@ object_names= <value>
 *Whether or not to perform an SNMP GET BULK operation.This will retrieve all the object attributes in the sub tree of the declared OIDs.Be aware of potential performance issues , http://www.net-snmp.org/wiki/index.php/GETBULK. Defaults to false.
 do_bulk_get= <value>
 
+*Whether or not to split up bulk output into individual events
+split_bulk_output= <value>
+
 *The number of objects that are only expected to return a single GETNEXT instance, not multiple instances. Managers frequently request the value of sysUpTime and only want that instance plus a list of other objects.Defaults to 0. 
 non_repeaters= <value>
 
@@ -38,3 +41,6 @@ trap_port= <value>
 
 *The trap host. Defaults to localhost
 trap_host= <value>
+
+*List of MIB names to be loaded and applied to your objects
+mib_names = <value>
