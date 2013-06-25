@@ -63,6 +63,18 @@ SCHEME = """<scheme>
                 <required_on_edit>false</required_on_edit>
                 <required_on_create>true</required_on_create>
             </arg>
+            <arg name="http_method">
+                <title>HTTP Method</title>
+                <description>HTTP method to use.Defaults to GET. POST and PUT are not really RESTful for requesting data from the API, but useful to have the option for target APIs that are "REST like"</description>
+                <required_on_edit>false</required_on_edit>
+                <required_on_create>false</required_on_create>
+            </arg>
+            <arg name="request_payload">
+                <title>Request Payload</title>
+                <description>Request payload for POST and PUT HTTP Methods</description>
+                <required_on_edit>false</required_on_edit>
+                <required_on_create>false</required_on_create>
+            </arg>
             <arg name="auth_type">
                 <title>Authentication Type</title>
                 <description>Authentication method to use : none | basic | digest | oauth1 | oauth2 | custom</description>
@@ -270,6 +282,9 @@ def do_run():
     
     endpoint=config.get("endpoint")
     
+    http_method=config.get("http_method","GET")
+    request_payload=config.get("request_payload")
+    
     #none | basic | digest | oauth1 | oauth2
     auth_type=config.get("auth_type","none")
     
@@ -398,15 +413,27 @@ def do_run():
             req_args["headers"]= http_header_propertys
         if proxies:
             req_args["proxies"]= proxies
-
+        if request_payload and not http_method == "GET":
+            req_args["data"]= request_payload
             
         while True:
             
             try:
                 if oauth2:
-                    r = oauth2.get(endpoint,**req_args)
+                    if http_method == "GET":
+                        r = oauth2.get(endpoint,**req_args)
+                    elif http_method == "POST":
+                        r = oauth2.post(endpoint,**req_args) 
+                    elif http_method == "PUT":
+                        r = oauth2.put(endpoint,**req_args)       
                 else:
-                    r = requests.get(endpoint,**req_args)
+                    if http_method == "GET":
+                        r = requests.get(endpoint,**req_args)
+                    elif http_method == "POST":
+                        r = requests.post(endpoint,**req_args) 
+                    elif http_method == "PUT":
+                        r = requests.put(endpoint,**req_args) 
+                        
             except requests.exceptions.Timeout,e:
                 logging.error("HTTP Request Timeout error: %s" % str(e))
                 time.sleep(float(backoff_time))

@@ -3,6 +3,12 @@
 * REST API Endpoint URL
 endpoint= <value>
 
+* HTTP Method (GET,POST,PUT)
+http_method = <value>
+
+* Request Payload for POST and PUT
+request_payload = <value>
+
 * Authentication type [none | basic | digest | oauth1 | oauth2 | custom ]
 auth_type= <value>
 
