@@ -451,7 +451,7 @@ def do_run():
                 error_http_code = r.status_code
                 if index_error_response_codes:
                     error_event=""
-                    error_event += 'http_error_code = %s error_message = %s' % (error_http_code.prettyPrint(), error_output.prettyPrint()) 
+                    error_event += 'http_error_code = %s error_message = %s' % (error_http_code, error_output) 
                     print_xml_single_instance_mode(error_event)
                     sys.stdout.flush()
                 logging.error("HTTP Request error: %s" % str(e))
