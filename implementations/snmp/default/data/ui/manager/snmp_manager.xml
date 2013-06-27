@@ -20,6 +20,7 @@
 					<key name="legend">SNMP Attribute polling settings</key>
 					<view name="edit" />
 					<view name="create" />
+                                        <view name="list"/>
 					<elements>
         <element name="destination" type="textfield" label="Destination">
           <view name="list"/>
@@ -107,6 +108,7 @@
 					<key name="legend">SNMP Trap listener settings</key>
 					<view name="edit" />
 					<view name="create" />
+                                        <view name="list"/>
 					<elements>
         <element name="listen_traps" type="checkbox" label="Listen for TRAP messages">
           <view name="list"/>
