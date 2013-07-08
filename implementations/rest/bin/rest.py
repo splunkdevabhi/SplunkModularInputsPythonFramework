@@ -438,6 +438,10 @@ def do_run():
                 logging.error("HTTP Request Timeout error: %s" % str(e))
                 time.sleep(float(backoff_time))
                 continue
+            except Exception as e:
+                logging.error("Exception performing request: %s" % str(e))
+                time.sleep(float(backoff_time))
+                continue
             try:
                 r.raise_for_status()
                 if streaming_request:
