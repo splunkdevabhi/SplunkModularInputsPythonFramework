@@ -275,12 +275,17 @@ def do_run():
     cmdGen = cmdgen.CommandGenerator()
          
     mibBuilder = cmdGen.snmpEngine.msgAndPduDsp.mibInstrumController.mibBuilder
-                       
+    
+    mibSources = (builder.DirMibSource(mib_egg_dir),)  
+             
     for filename in os.listdir(mib_egg_dir):
-       if filename.endswith(".egg"):
-           mibSources = mibBuilder.getMibSources() + (builder.ZipMibSource(filename),)
-         
+       if filename.endswith(".egg"):          
+           mibSources = mibSources + (builder.ZipMibSource(filename),)
+    
+    mibSources = mibBuilder.getMibSources() + mibSources
     mibBuilder.setMibSources(*mibSources)
+    
+    
     if mib_names_args:
         mibBuilder.loadModules(*mib_names_args)
         

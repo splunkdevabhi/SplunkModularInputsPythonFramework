@@ -1,4 +1,4 @@
-## Splunk SNMP Modular Input v1.0.4beta
+## Splunk SNMP Modular Input v1.0.5beta
 
 ## Overview
 
@@ -50,7 +50,8 @@ So alternatively you can also execute :
 
 smidump -f python <mib-text-file.txt> | libsmi2pysnmp > <mib-text-file.py>
 
-Then “egg” up your python MIB modules and place them in SPLUNK_HOME/etc/apps/snmp_ta/bin/mibs
+Then you can either copy the generated python files to SPLUNK_HOME/etc/apps/snmp_ta/bin/mibs or build a Python "egg" of 
+the generated python files(maybe tidier if you have many python files) and copy the egg to that same location.
 
 In the configuration screen for the SNMP input in Splunk Manager , there is a field called “MIB Names” (see above).
 Here you can specify the MIB names you want applied to the SNMP input definition ie: IF-MIB,DNS-SERVER-MIB,BRIDGE-MIB
