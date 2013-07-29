@@ -192,40 +192,49 @@ def do_validate():
         raise   
      
 def trapCallback(transportDispatcher, transportDomain, transportAddress, wholeMsg):
-    while wholeMsg:
-        msgVer = int(api.decodeMessageVersion(wholeMsg))
-        if msgVer in api.protoModules:
-            pMod = api.protoModules[msgVer]
-        else:
-            logging.error('Receiving trap , unsupported SNMP version %s' % msgVer)
-            return
-        reqMsg, wholeMsg = decoder.decode(wholeMsg, asn1Spec=pMod.Message(),)
-        
-        reqPDU = pMod.apiMessage.getPDU(reqMsg)
-        
-        splunkevent =""
-        
-        if reqPDU.isSameTypeWith(pMod.TrapPDU()):
-            if msgVer == api.protoVersion1:
-                
-                #splunkevent += 'notification_from_domain = "%s" ' % (transportDomain)
-                #splunkevent += 'notification_from_address = "%s" ' % (transportAddress)               
-                splunkevent += 'notification_enterprise = "%s" ' % (pMod.apiTrapPDU.getEnterprise(reqPDU).prettyPrint())
-                splunkevent += 'notification_agent_address = "%s" ' % (pMod.apiTrapPDU.getAgentAddr(reqPDU).prettyPrint())
-                splunkevent += 'notification_generic_trap = "%s" ' % (pMod.apiTrapPDU.getGenericTrap(reqPDU).prettyPrint())
-                splunkevent += 'notification_specific_trap = "%s" ' % (pMod.apiTrapPDU.getSpecificTrap(reqPDU).prettyPrint())
-                splunkevent += 'notification_uptime = "%s" ' % (pMod.apiTrapPDU.getTimeStamp(reqPDU).prettyPrint())
-                
-                varBinds = pMod.apiTrapPDU.getVarBindList(reqPDU)
+    
+    try:
+        while wholeMsg:
+            msgVer = int(api.decodeMessageVersion(wholeMsg))
+            if msgVer in api.protoModules:
+                pMod = api.protoModules[msgVer]
             else:
-                varBinds = pMod.apiPDU.getVarBindList(reqPDU)
-            for oid, val in varBinds:
-                (symName, modName), indices = mibvar.oidToMibName(mibView, oid)
-                splunkevent +='%s::%s.%s = %s ' % (modName, symName,'.'.join([ v.prettyPrint() for v in indices]),val.prettyPrint())      
-        if splunkevent != "":
-            print_xml_single_instance_mode(splunkevent)
-            sys.stdout.flush() 
+                logging.error('Receiving trap , unsupported SNMP version %s' % msgVer)
+                return
+            reqMsg, wholeMsg = decoder.decode(wholeMsg, asn1Spec=pMod.Message(),)
+            
+            reqPDU = pMod.apiMessage.getPDU(reqMsg)
+            
+            splunkevent =""
+            
+            if reqPDU.isSameTypeWith(pMod.TrapPDU()):
+                if msgVer == api.protoVersion1:
+                    
+                    #splunkevent += 'notification_from_domain = "%s" ' % (transportDomain)
+                    #splunkevent += 'notification_from_address = "%s" ' % (transportAddress)               
+                    splunkevent += 'notification_enterprise = "%s" ' % (pMod.apiTrapPDU.getEnterprise(reqPDU).prettyPrint())
+                    splunkevent += 'notification_agent_address = "%s" ' % (pMod.apiTrapPDU.getAgentAddr(reqPDU).prettyPrint())
+                    splunkevent += 'notification_generic_trap = "%s" ' % (pMod.apiTrapPDU.getGenericTrap(reqPDU).prettyPrint())
+                    splunkevent += 'notification_specific_trap = "%s" ' % (pMod.apiTrapPDU.getSpecificTrap(reqPDU).prettyPrint())
+                    splunkevent += 'notification_uptime = "%s" ' % (pMod.apiTrapPDU.getTimeStamp(reqPDU).prettyPrint())
+                    
+                    varBinds = pMod.apiTrapPDU.getVarBindList(reqPDU)
+                else:
+                    varBinds = pMod.apiPDU.getVarBindList(reqPDU)
+                for oid, val in varBinds:
+                    try:
+                        (symName, modName), indices = mibvar.oidToMibName(mibView, oid)
+                        splunkevent +='%s::%s.%s = %s ' % (modName, symName,'.'.join([ v.prettyPrint() for v in indices]),val.prettyPrint())      
+                    except Exception as e:
+                        logging.error("Exception resolving OID to MIB Name: %s" % str(e))
+                        splunkevent +='%s = %s ' % (oid,val.prettyPrint())      
                 
+            if splunkevent != "":
+                print_xml_single_instance_mode(splunkevent)
+                sys.stdout.flush() 
+    except Exception as e:
+        logging.error("Exception receiving trap %s" % str(e))
+                  
     return wholeMsg        
 
     
@@ -305,49 +314,49 @@ def do_run():
                 transport = cmdgen.UdpTransportTarget((destination, port))  
              
             while True:  
-                     
-                if do_bulk and not snmp_version == "1":
-                    errorIndication, errorStatus, errorIndex, varBindTable = cmdGen.bulkCmd(
-                cmdgen.CommunityData(communitystring,mpModel=mp_model_val),
-                transport,
-                non_repeaters, max_repetitions,
-                *oid_args,lookupNames=True, lookupValues=True)
-                    
-                else:
-                    errorIndication, errorStatus, errorIndex, varBinds = cmdGen.getCmd(
-                cmdgen.CommunityData(communitystring,mpModel=mp_model_val),
-                transport,
-                *oid_args,
-                lookupNames=True, lookupValues=True)
-            
-            
-                if errorIndication:
-                    raise RuntimeError(errorIndication)
-                    logging.error(errorIndication)
-                elif errorStatus:
-                    raise RuntimeError(errorStatus)
-                    logging.error(errorStatus)
-                else:
-                    splunkevent =""
+                try:      
+                    if do_bulk and not snmp_version == "1":
+                        errorIndication, errorStatus, errorIndex, varBindTable = cmdGen.bulkCmd(
+                    cmdgen.CommunityData(communitystring,mpModel=mp_model_val),
+                    transport,
+                    non_repeaters, max_repetitions,
+                    *oid_args,lookupNames=True, lookupValues=True)
+                        
+                    else:
+                        errorIndication, errorStatus, errorIndex, varBinds = cmdGen.getCmd(
+                    cmdgen.CommunityData(communitystring,mpModel=mp_model_val),
+                    transport,
+                    *oid_args,
+                    lookupNames=True, lookupValues=True)
                 
-                    if do_bulk:
-                        for varBindTableRow in varBindTable:
-                            for name, val in varBindTableRow:
-                                output_element = '%s = "%s" ' % (name.prettyPrint(), val.prettyPrint())                               
-                                if split_bulk_output:
-                                    print_xml_single_instance_mode(output_element)
-                                    sys.stdout.flush()   
-                                else:    
-                                    splunkevent += output_element 
-                    else:    
-                        for name, val in varBinds:
-                            splunkevent += '%s = "%s" ' % (name.prettyPrint(), val.prettyPrint())
-                   
-                   
-                    if not split_bulk_output:
-                        print_xml_single_instance_mode(splunkevent)
-                        sys.stdout.flush() 
+                
+                    if errorIndication:
+                        logging.error(errorIndication)
+                    elif errorStatus:
+                        logging.error(errorStatus)
+                    else:
+                        splunkevent =""
                     
+                        if do_bulk:
+                            for varBindTableRow in varBindTable:
+                                for name, val in varBindTableRow:
+                                    output_element = '%s = "%s" ' % (name.prettyPrint(), val.prettyPrint())                               
+                                    if split_bulk_output:
+                                        print_xml_single_instance_mode(output_element)
+                                        sys.stdout.flush()   
+                                    else:    
+                                        splunkevent += output_element 
+                        else:    
+                            for name, val in varBinds:
+                                splunkevent += '%s = "%s" ' % (name.prettyPrint(), val.prettyPrint())
+                       
+                       
+                        if not split_bulk_output:
+                            print_xml_single_instance_mode(splunkevent)
+                            sys.stdout.flush() 
+                except Exception as e:
+                    logging.error("Exception polling attributes %s" % str(e))
+                            
                 time.sleep(float(snmpinterval))        
             
         except RuntimeError,e:

@@ -1,4 +1,4 @@
-## Splunk SNMP Modular Input v1.0.5beta
+## Splunk SNMP Modular Input v1.0.6beta
 
 ## Overview
 
