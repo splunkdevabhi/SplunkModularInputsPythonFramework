@@ -206,12 +206,15 @@ def trapCallback(transportDispatcher, transportDomain, transportAddress, wholeMs
             reqPDU = pMod.apiMessage.getPDU(reqMsg)
             
             splunkevent =""
+            try:
+                splunkevent += 'notification_from_address = "%s" ' % (transportAddress)
+                splunkevent += 'notification_from_domain = "%s" ' % (transportDomain)                              
+            except Exception as e:
+                logging.error("Exception resolving source address/domain of the trap: %s" % str(e))
             
             if reqPDU.isSameTypeWith(pMod.TrapPDU()):
                 if msgVer == api.protoVersion1:
                     
-                    #splunkevent += 'notification_from_domain = "%s" ' % (transportDomain)
-                    #splunkevent += 'notification_from_address = "%s" ' % (transportAddress)               
                     splunkevent += 'notification_enterprise = "%s" ' % (pMod.apiTrapPDU.getEnterprise(reqPDU).prettyPrint())
                     splunkevent += 'notification_agent_address = "%s" ' % (pMod.apiTrapPDU.getAgentAddr(reqPDU).prettyPrint())
                     splunkevent += 'notification_generic_trap = "%s" ' % (pMod.apiTrapPDU.getGenericTrap(reqPDU).prettyPrint())

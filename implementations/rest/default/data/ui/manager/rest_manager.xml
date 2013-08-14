@@ -198,13 +198,7 @@
 							<view name="create" />
 							<key name="exampleText">OAUTH 2 access token</key>
 						</element>
-						<element name="oauth2_expires_in" type="textfield"
-							label="OAUTH 2 Token Expiration Time">
-
-							<view name="edit" />
-							<view name="create" />
-							<key name="exampleText">OAUTH 2 token expiration time</key>
-						</element>
+						
 						<element name="oauth2_refresh_token" type="textfield"
 							label="OAUTH 2 Refresh Token">
 
@@ -336,7 +330,12 @@
 					<view name="create" />
 					<key name="exampleText">Polling interval in seconds , defaults to 60</key>
 				</element>
+                <element name="delimiter" type="textfield" label="Delimiter">
 
+					<view name="edit" />
+					<view name="create" />
+					<key name="exampleText">Delimiter to use for any multi "key=value" field inputs, defaults to ','</key>
+				</element>
 
 			</elements>
 		</element>

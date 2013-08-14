@@ -1,12 +1,12 @@
 #add your custom response handler class to this module
-
+import json
 #the default handler , does nothing , just passes the raw output directly to STDOUT
 class DefaultResponseHandler:
     
     def __init__(self,**args):
         pass
         
-    def __call__(self, response_object,raw_response_output,response_type):        
+    def __call__(self, response_object,raw_response_output,response_type,req_args,endpoint):        
         print_xml_stream(raw_response_output)
           
         
@@ -16,11 +16,26 @@ class MyResponseHandler:
     def __init__(self,**args):
         pass
         
-    def __call__(self, response_object,raw_response_output,response_type):        
+    def __call__(self, response_object,raw_response_output,response_type,req_args,endpoint):        
         print_xml_stream("foobar")
 
+class BoxEventHandler:
     
-
+    def __init__(self,**args):
+        pass
+        
+    def __call__(self, response_object,raw_response_output,response_type,req_args,endpoint):
+        if response_type == "json":        
+            output = json.loads(raw_response_output)
+            if not "params" in req_args:
+                req_args["params"] = {}
+            if "next_stream_position" in output:    
+                req_args["params"]["stream_position"] = output["next_stream_position"]
+            for entry in output["entries"]:
+                print_xml_stream(json.dumps(entry))   
+        else:
+            print_xml_stream(raw_response_output)  
+                        
 #HELPER FUNCTIONS
     
 # prints XML stream

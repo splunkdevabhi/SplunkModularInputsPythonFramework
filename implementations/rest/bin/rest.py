@@ -129,12 +129,6 @@ SCHEME = """<scheme>
                 <required_on_edit>false</required_on_edit>
                 <required_on_create>false</required_on_create>
             </arg>
-            <arg name="oauth2_expires_in">
-                <title>OAUTH 2 Expiration Time</title>
-                <description>OAUTH 2 expiration time</description>
-                <required_on_edit>false</required_on_edit>
-                <required_on_create>false</required_on_create>
-            </arg>
             <arg name="oauth2_refresh_token">
                 <title>OAUTH 2 Refresh Token</title>
                 <description>OAUTH 2 refresh token</description>
@@ -219,6 +213,12 @@ SCHEME = """<scheme>
                 <required_on_edit>false</required_on_edit>
                 <required_on_create>false</required_on_create>
             </arg>
+            <arg name="delimiter">
+                <title>Delimiter</title>
+                <description>Delimiter to use for any multi "key=value" field inputs</description>
+                <required_on_edit>false</required_on_edit>
+                <required_on_create>false</required_on_create>
+            </arg>
             <arg name="index_error_response_codes">
                 <title>Index Error Responses</title>
                 <description>Whether or not to index error response codes : true | false</description>
@@ -288,6 +288,9 @@ def do_run():
     #none | basic | digest | oauth1 | oauth2
     auth_type=config.get("auth_type","none")
     
+    #Delimiter to use for any multi "key=value" field inputs
+    delimiter=config.get("delimiter",",")
+    
     #for basic and digest
     auth_user=config.get("auth_user")
     auth_password=config.get("auth_password")
@@ -301,7 +304,7 @@ def do_run():
     #for oauth2
     oauth2_token_type=config.get("oauth2_token_type","Bearer")
     oauth2_access_token=config.get("oauth2_access_token")
-    oauth2_expires_in=config.get("oauth2_expires_in")
+    
     oauth2_refresh_token=config.get("oauth2_refresh_token")
     oauth2_refresh_url=config.get("oauth2_refresh_url")
     oauth2_refresh_props_str=config.get("oauth2_refresh_props")
@@ -311,7 +314,7 @@ def do_run():
     oauth2_refresh_props={}
     if not oauth2_refresh_props_str is None:
         oauth2_refresh_props = dict((k.strip(), v.strip()) for k,v in 
-              (item.split('=') for item in oauth2_refresh_props_str.split(',')))
+              (item.split('=') for item in oauth2_refresh_props_str.split(delimiter)))
     oauth2_refresh_props['client_id'] = oauth2_client_id
     oauth2_refresh_props['client_secret'] = oauth2_client_secret
         
@@ -319,13 +322,13 @@ def do_run():
     http_header_propertys_str=config.get("http_header_propertys")
     if not http_header_propertys_str is None:
         http_header_propertys = dict((k.strip(), v.strip()) for k,v in 
-              (item.split('=') for item in http_header_propertys_str.split(',')))
+              (item.split('=') for item in http_header_propertys_str.split(delimiter)))
        
     url_args={} 
     url_args_str=config.get("url_args")
     if not url_args_str is None:
         url_args = dict((k.strip(), v.strip()) for k,v in 
-              (item.split('=') for item in url_args_str.split(',')))
+              (item.split('=') for item in url_args_str.split(delimiter)))
         
     #json | xml | text    
     response_type=config.get("response_type","text")
@@ -361,7 +364,7 @@ def do_run():
     response_handler_args_str=config.get("response_handler_args")
     if not response_handler_args_str is None:
         response_handler_args = dict((k.strip(), v.strip()) for k,v in 
-              (item.split('=') for item in response_handler_args_str.split(',')))
+              (item.split('=') for item in response_handler_args_str.split(delimiter)))
         
     response_handler=config.get("response_handler","DefaultResponseHandler")
     module = __import__("responsehandlers")
@@ -378,7 +381,7 @@ def do_run():
         custom_auth_handler_args={} 
         custom_auth_handler_args_str=config.get("custom_auth_handler_args")
         if not custom_auth_handler_args_str is None:
-            custom_auth_handler_args = dict((k.strip(), v.strip()) for k,v in (item.split('=') for item in custom_auth_handler_args_str.split(',')))
+            custom_auth_handler_args = dict((k.strip(), v.strip()) for k,v in (item.split('=') for item in custom_auth_handler_args_str.split(delimiter)))
         CUSTOM_AUTH_HANDLER_INSTANCE = class_(**custom_auth_handler_args)
     
     
@@ -397,7 +400,7 @@ def do_run():
             token["token_type"] = oauth2_token_type
             token["access_token"] = oauth2_access_token
             token["refresh_token"] = oauth2_refresh_token
-            token["expires_in"] = oauth2_expires_in
+            token["expires_in"] = "5"
             client = WebApplicationClient(oauth2_client_id)
             oauth2 = OAuth2Session(client, token=token,auto_refresh_url=oauth2_refresh_url,auto_refresh_kwargs=oauth2_refresh_props,token_updater=oauth2_token_updater)
         elif auth_type == "custom" and CUSTOM_AUTH_HANDLER_INSTANCE:
@@ -447,9 +450,9 @@ def do_run():
                 if streaming_request:
                     for line in r.iter_lines():
                         if line:
-                            handle_output(r,line,response_type)  
+                            handle_output(r,line,response_type,req_args,endpoint)  
                 else:                    
-                    handle_output(r,r.text,response_type)
+                    handle_output(r,r.text,response_type,req_args,endpoint)
             except requests.exceptions.HTTPError,e:
                 error_output = r.text
                 error_http_code = r.status_code
@@ -474,19 +477,19 @@ def oauth2_token_updater(token):
         args = {'host':'localhost','port':SPLUNK_PORT,'token':SESSION_TOKEN}
         service = Service(**args)   
         item = service.inputs.__getitem__(STANZA[7:])
-        item.update(oauth2_access_token=token["access_token"],oauth2_refresh_token=token["refresh_token"],oauth2_expires_in=token["expires_in"])
+        item.update(oauth2_access_token=token["access_token"],oauth2_refresh_token=token["refresh_token"])
     except RuntimeError,e:
         logging.error("Looks like an error updating the oauth2 token: %s" % str(e))
 
             
-def handle_output(response,output,type): 
+def handle_output(response,output,type,req_args,endpoint): 
     
     try:
         if REGEX_PATTERN:
             search_result = REGEX_PATTERN.search(output)
             if search_result == None:
                 return   
-        RESPONSE_HANDLER_INSTANCE(response,output,type)
+        RESPONSE_HANDLER_INSTANCE(response,output,type,req_args,endpoint)
         sys.stdout.flush()               
     except RuntimeError,e:
         logging.error("Looks like an error handle the response output: %s" % str(e))

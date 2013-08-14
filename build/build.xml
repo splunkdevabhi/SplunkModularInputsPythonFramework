@@ -13,7 +13,7 @@
     <property name="release" value="releases"/>
     <property name="lib" value="lib"/>
     <property name="temp_build" value="temp_build"/>
-    <property name="suffix" value=".tar.gz"/>
+    <property name="suffix" value=".spl"/>
     <property name="compressionType" value="gzip"/>
 
     <target name="init" >

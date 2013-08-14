@@ -27,7 +27,6 @@ oauth1_access_token_secret= <value>
 *oauth2 params
 oauth2_token_type= <value>
 oauth2_access_token= <value>
-oauth2_expires_in= <value>
 oauth2_refresh_token= <value>
 oauth2_refresh_url= <value>
 oauth2_refresh_props= <value>
@@ -76,6 +75,9 @@ custom_auth_handler= <value>
 
 *Custom Authentication Handler arguments string ,  key=value,key2=value2
 custom_auth_handler_args= <value>
+
+*Delimiter to use for any multi "key=value" field inputs
+delimiter= <value>
 
 
 
