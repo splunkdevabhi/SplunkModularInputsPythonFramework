@@ -1,4 +1,4 @@
-# Splunk REST API Modular Input v1.0.6beta
+# Splunk REST API Modular Input v1.1
 
 ## Overview
 
@@ -12,7 +12,7 @@ This is a Splunk modular input add-on for polling REST APIs.
 * Add custom HTTP(s) Header properties
 * Add custom URL arguments
 * HTTP(s) Streaming Requests
-* HTTP(s) Proxy support
+* HTTP(s) Proxy support , supports HTTP CONNECT Verb
 * Response regex patterns to filter out responses
 * Configurable polling interval
 * Configurable timeouts
