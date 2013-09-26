@@ -40,22 +40,90 @@
           <view name="create"/>
           <key name="exampleText">The SNMP port. Defaults to 161</key>
         </element>
+        
+        
+        
         <element name="snmp_version" type="select" label="SNMP Version">
-       <view name="list"/>
+					<onChange>
+
+						<key name="_action">showonly</key>
+						<group_set>
+							<group name="version_1_2c" />
+							<group name="version_3" />
+						</group_set>
+						<key name="1">version_1_2c</key>
+						<key name="2C">version_1_2c</key>
+						<key name="3">version_3</key>					
+					</onChange>
+					 <view name="list"/>
           <view name="edit"/>
           <view name="create"/>
-          <key name="exampleText">The SNMP Version , 1 or 2C, version 3 not currently supported. Defaults to 2C</key>
+          <key name="exampleText">The SNMP Version , 1  / 2C / 3 . Defaults to 2C</key>
           <options>
             <opt value="2C" label="2C"/> 
-            <opt value="1" label="1"/>                    
+            <opt value="1" label="1"/>
+            <opt value="3" label="3"/>                  
           </options>
-        </element>
+				</element>
+				
+        
+        <element name="version_1_2c" type="fieldset">
+					
+					<view name="edit" />
+					<view name="create" />
+					<elements>
         <element name="communitystring" type="textfield" label="Community String">
           
           <view name="edit"/>
           <view name="create"/>
           <key name="exampleText">Community String used for SNMP version 1 and 2C authentication.Defaults to "public"</key>
         </element>
+        </elements>
+				</element>
+				
+        <element name="version_3" type="fieldset">
+					
+					<view name="edit" />
+					<view name="create" />
+					<elements>
+        <element name="v3_securityName" type="textfield" label="SNMPv3 USM username">
+          
+          <view name="edit"/>
+          <view name="create"/>
+          <key name="exampleText">SNMPv3 USM username</key>
+        </element>
+        
+        <element name="v3_authKey" type="textfield" label="SNMPv3 Authorization Key">
+          
+          <view name="edit"/>
+          <view name="create"/>
+          <key name="exampleText">SNMPv3 secret authorization key used within USM for SNMP PDU authorization. Setting it to a non-empty value implies MD5-based PDU authentication (defaults to usmHMACMD5AuthProtocol) to take effect. Default hashing method may be changed by means of further Authorization Protocol parameter</key>
+        </element>
+        
+        <element name="v3_privKey" type="textfield" label="SNMPv3 Encryption Key">
+          
+          <view name="edit"/>
+          <view name="create"/>
+          <key name="exampleText">SNMPv3 secret encryption key used within USM for SNMP PDU encryption. Setting it to a non-empty value implies MD5-based PDU authentication (defaults to usmHMACMD5AuthProtocol) and DES-based encryption (defaults to usmDESPrivProtocol) to take effect. Default hashing and/or encryption methods may be changed by means of further Authorization Protocol and/or Encryption Protocol parameters. </key>
+        </element>
+        
+        <element name="v3_authProtocol" type="textfield" label="SNMPv3 Authorization Protocol">
+          
+          <view name="edit"/>
+          <view name="create"/>
+          <key name="exampleText">May be used to specify non-default hash function algorithm. Possible values include usmHMACMD5AuthProtocol (default) / usmHMACSHAAuthProtocol / usmNoAuthProtocol</key>
+        </element>
+        
+        <element name="v3_privProtocol" type="textfield" label="SNMPv3 Encryption Key Protocol">
+          
+          <view name="edit"/>
+          <view name="create"/>
+          <key name="exampleText">May be used to specify non-default ciphering algorithm. Possible values include usmDESPrivProtocol (default) / usmAesCfb128Protocol / usm3DESEDEPrivProtocol / usmAesCfb192Protocol / usmAesCfb256Protocol / usmNoPrivProtocol</key>
+        </element>
+        
+        </elements>
+				</element>
+				
         <element name="mib_names" type="textfield" label="MIB Names">
           
           <view name="edit"/>

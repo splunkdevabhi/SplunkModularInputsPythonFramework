@@ -30,10 +30,11 @@ for filename in os.listdir(mib_egg_dir):
 from pysnmp.entity.rfc3413.oneliner import cmdgen
 from pysnmp.carrier.asynsock.dispatch import AsynsockDispatcher
 from pysnmp.carrier.asynsock.dgram import udp, udp6
+from pysnmp.entity import engine, config
 from pyasn1.codec.ber import decoder
 from pysnmp.proto import api
 from pysnmp.smi import builder
-from pysnmp.entity.rfc3413 import mibvar
+from pysnmp.entity.rfc3413 import mibvar,ntfrcv
 from pysnmp.smi import view
 
 #set up logging
@@ -92,6 +93,36 @@ SCHEME = """<scheme>
             <arg name="communitystring">
                 <title>Community String</title>
                 <description>Community String used for authentication.Defaults to "public"</description>
+                <required_on_edit>false</required_on_edit>
+                <required_on_create>false</required_on_create>
+            </arg>
+            <arg name="v3_securityName">
+                <title>SNMPv3 USM Username</title>
+                <description>SNMPv3 USM Username</description>
+                <required_on_edit>false</required_on_edit>
+                <required_on_create>false</required_on_create>
+            </arg>
+            <arg name="v3_authKey">
+                <title>SNMPv3 Authorization Key</title>
+                <description>SNMPv3 secret authorization key used within USM for SNMP PDU authorization. Setting it to a non-empty value implies MD5-based PDU authentication (defaults to usmHMACMD5AuthProtocol) to take effect. Default hashing method may be changed by means of further authProtocol parameter</description>
+                <required_on_edit>false</required_on_edit>
+                <required_on_create>false</required_on_create>
+            </arg>
+            <arg name="v3_privKey">
+                <title>SNMPv3 Encryption Key</title>
+                <description>SNMPv3 secret encryption key used within USM for SNMP PDU encryption. Setting it to a non-empty value implies MD5-based PDU authentication (defaults to usmHMACMD5AuthProtocol) and DES-based encryption (defaults to usmDESPrivProtocol) to take effect. Default hashing and/or encryption methods may be changed by means of further authProtocol and/or privProtocol parameters. </description>
+                <required_on_edit>false</required_on_edit>
+                <required_on_create>false</required_on_create>
+            </arg>
+            <arg name="v3_authProtocol">
+                <title>SNMPv3 Authorization Protocol</title>
+                <description>may be used to specify non-default hash function algorithm. Possible values include usmHMACMD5AuthProtocol (default) / usmHMACSHAAuthProtocol / usmNoAuthProtocol</description>
+                <required_on_edit>false</required_on_edit>
+                <required_on_create>false</required_on_create>
+            </arg>
+            <arg name="v3_privProtocol">
+                <title>SNMPv3 Encryption Key Protocol</title>
+                <description>may be used to specify non-default ciphering algorithm. Possible values include usmDESPrivProtocol (default) / usmAesCfb128Protocol / usm3DESEDEPrivProtocol / usmAesCfb192Protocol / usmAesCfb256Protocol / usmNoPrivProtocol</description>
                 <required_on_edit>false</required_on_edit>
                 <required_on_create>false</required_on_create>
             </arg>
@@ -186,11 +217,54 @@ def do_validate():
         if validationFailed:
             sys.exit(2)
                
-    except RuntimeError,e:
+    except e:
         logging.error("Looks like an error: %s" % str(e))
         sys.exit(1)
         raise   
-     
+    
+
+def printVarBindsFromTrap(varBinds):
+    splunkevent =""
+    for oid, val in varBinds:
+        try:
+            (symName, modName), indices = mibvar.oidToMibName(mibView, oid)                 
+            splunkevent +='%s::%s.%s =  ' % (modName, symName,'.'.join([ v.prettyPrint() for v in indices]))      
+        except e:
+            logging.error("Exception resolving OID to MIB Name: %s" % str(e))
+            splunkevent +='%s =  ' % (oid)
+        try:
+            decodedVal = mibvar.cloneFromMibValue(mibView,modName,symName,val)
+            splunkevent +='%s ' % (decodedVal.prettyPrint())      
+        except e:
+            logging.error("Exception resolving OID value: %s" % str(e))
+            splunkevent +='%s ' % (val.prettyPrint()) 
+    return splunkevent
+    
+    
+    
+def v3trapCallback(snmpEngine,stateReference,contextEngineId, contextName,varBinds,cbCtx):
+    try:
+        splunkevent = ""
+        ( transportDomain,transportAddress ) = snmpEngine.msgAndPduDsp.getTransportInfo(stateReference)
+        try:
+            splunkevent += 'notification_from_address = "%s" ' % (transportAddress)
+            splunkevent += 'notification_from_domain = "%s" ' % (transportDomain)                              
+        except e:
+            logging.error("Exception resolving source address/domain of the trap: %s" % str(e))
+        
+        try:
+            splunkevent += 'context_engine_id = "%s" ' % (contextEngineId.prettyPrint())
+            splunkevent += 'context_name = "%s" ' % (contextName.prettyPrint())                              
+        except e:
+            logging.error("Exception resolving context of the trap: %s" % str(e))
+                   
+        splunkevent +=  printVarBindsFromTrap(varBinds)
+        if splunkevent != "":
+            print_xml_single_instance_mode(splunkevent)
+            sys.stdout.flush() 
+    except e:
+        logging.error("Exception receiving trap %s" % str(e))
+            
 def trapCallback(transportDispatcher, transportDomain, transportAddress, wholeMsg):
     
     try:
@@ -209,7 +283,7 @@ def trapCallback(transportDispatcher, transportDomain, transportAddress, wholeMs
             try:
                 splunkevent += 'notification_from_address = "%s" ' % (transportAddress)
                 splunkevent += 'notification_from_domain = "%s" ' % (transportDomain)                              
-            except Exception as e:
+            except e:
                 logging.error("Exception resolving source address/domain of the trap: %s" % str(e))
             
             if reqPDU.isSameTypeWith(pMod.TrapPDU()):
@@ -224,18 +298,13 @@ def trapCallback(transportDispatcher, transportDomain, transportAddress, wholeMs
                     varBinds = pMod.apiTrapPDU.getVarBindList(reqPDU)
                 else:
                     varBinds = pMod.apiPDU.getVarBindList(reqPDU)
-                for oid, val in varBinds:
-                    try:
-                        (symName, modName), indices = mibvar.oidToMibName(mibView, oid)
-                        splunkevent +='%s::%s.%s = %s ' % (modName, symName,'.'.join([ v.prettyPrint() for v in indices]),val.prettyPrint())      
-                    except Exception as e:
-                        logging.error("Exception resolving OID to MIB Name: %s" % str(e))
-                        splunkevent +='%s = %s ' % (oid,val.prettyPrint())      
+                    
+                splunkevent += printVarBindsFromTrap(varBinds)      
                 
             if splunkevent != "":
                 print_xml_single_instance_mode(splunkevent)
                 sys.stdout.flush() 
-    except Exception as e:
+    except e:
         logging.error("Exception receiving trap %s" % str(e))
                   
     return wholeMsg        
@@ -252,10 +321,14 @@ def do_run():
     
     #snmp 1 and 2C params
     snmp_version=config.get("snmp_version","2C")
-    mp_model_val=1
-    if snmp_version == "1":
-        mp_model_val=0
+    
     communitystring=config.get("communitystring","public")   
+    
+    v3_securityName=config.get("v3_securityName","") 
+    v3_authKey=config.get("v3_authKey","") 
+    v3_privKey=config.get("v3_privKey","") 
+    v3_authProtocol=config.get("v3_authProtocol","usmHMACMD5AuthProtocol") 
+    v3_privProtocol=config.get("v3_privProtocol","usmDESPrivProtocol") 
     
     #object names to poll
     object_names=config.get("object_names")
@@ -304,9 +377,13 @@ def do_run():
     global mibView
     mibView = view.MibViewController(mibBuilder)
     
-    if listen_traps and (snmp_version == "1" or snmp_version == "2C") :
-        trapThread = TrapThread(trap_port,trap_host,ipv6)
-        trapThread.start()
+    if listen_traps:
+        if snmp_version == "1" or snmp_version == "2C":
+            trapThread = TrapThread(trap_port,trap_host,ipv6)
+            trapThread.start()
+        if snmp_version == "3":
+            trapThread = V3TrapThread(trap_port,trap_host,ipv6,v3_securityName,v3_authKey,v3_authProtocol,v3_privKey,v3_privProtocol)
+            trapThread.start()  
       
     if not (object_names is None and destination is None):      
         try:
@@ -315,19 +392,29 @@ def do_run():
                 transport = cmdgen.Udp6TransportTarget((destination, port)) 
             else:
                 transport = cmdgen.UdpTransportTarget((destination, port))  
-             
+            
+            mp_model_val=1
+            
+            if snmp_version == "1":
+                mp_model_val=0
+                         
+            if snmp_version == "3":
+                security_object = cmdgen.UsmUserData( v3_securityName, authKey=v3_authKey, privKey=v3_privKey, authProtocol=v3_authProtocol, privProtocol=v3_privProtocol )
+            else:
+                security_object = cmdgen.CommunityData(communitystring,mpModel=mp_model_val)
+            
             while True:  
                 try:      
                     if do_bulk and not snmp_version == "1":
                         errorIndication, errorStatus, errorIndex, varBindTable = cmdGen.bulkCmd(
-                    cmdgen.CommunityData(communitystring,mpModel=mp_model_val),
+                    security_object,
                     transport,
                     non_repeaters, max_repetitions,
                     *oid_args,lookupNames=True, lookupValues=True)
                         
                     else:
                         errorIndication, errorStatus, errorIndex, varBinds = cmdGen.getCmd(
-                    cmdgen.CommunityData(communitystring,mpModel=mp_model_val),
+                    security_object,
                     transport,
                     *oid_args,
                     lookupNames=True, lookupValues=True)
@@ -357,12 +444,12 @@ def do_run():
                         if not split_bulk_output:
                             print_xml_single_instance_mode(splunkevent)
                             sys.stdout.flush() 
-                except Exception as e:
+                except e:
                     logging.error("Exception polling attributes %s" % str(e))
                             
                 time.sleep(float(snmpinterval))        
             
-        except RuntimeError,e:
+        except e:
             logging.error("Looks like an error: %s" % str(e))
             sys.exit(1)
             raise    
@@ -393,11 +480,51 @@ class TrapThread(threading.Thread):
             transportDispatcher.jobStarted(1)
             # Dispatcher will never finish as job#1 never reaches zero
             transportDispatcher.runDispatcher()     
-        except RuntimeError,e:
+        except e:
             transportDispatcher.closeDispatcher()
             logging.error("Looks like an error: %s" % str(e))
             sys.exit(1)
 
+class V3TrapThread(threading.Thread):
+    
+     def __init__(self,port,host,ipv6,user,auth_key,auth_proto,priv_key,priv_proto):
+         threading.Thread.__init__(self)
+         self.port=port
+         self.host=host
+         self.ipv6=ipv6
+         self.user=user
+         self.auth_key=auth_key
+         self.auth_proto=auth_proto
+         self.priv_key=priv_key
+         self.priv_proto=priv_proto
+
+     def run(self):
+         
+        snmpEngine = engine.SnmpEngine()
+        
+        if self.ipv6:
+            domainName = udp6.domainName
+            config.addSocketTransport(snmpEngine,domainName,udp6.Udp6Transport().openServerMode((self.host, self.port)))
+        else:
+            domainName = udp.domainName
+            config.addSocketTransport(snmpEngine,domainName,udp.UdpTransport().openServerMode((self.host, self.port))) 
+            
+        config.addV3User(snmpEngine, self.user,self.auth_proto, self.auth_key,self.priv_proto,self.priv_key)
+  
+        # Register SNMP Application at the SNMP engine
+        ntfrcv.NotificationReceiver(snmpEngine, v3trapCallback)
+
+        snmpEngine.transportDispatcher.jobStarted(1) # this job would never finish
+
+        # Run I/O dispatcher which would receive queries and send confirmations
+        try:
+            snmpEngine.transportDispatcher.runDispatcher()
+        except e:
+            snmpEngine.transportDispatcher.closeDispatcher()
+            logging.error("Looks like an error: %s" % str(e))
+            sys.exit(1)
+            
+            
 # prints validation error data to be consumed by Splunk
 def print_validation_error(s):
     print "<error><message>%s</message></error>" % xml.sax.saxutils.escape(s)
@@ -462,7 +589,7 @@ def get_input_config():
             raise Exception, "Invalid configuration received from Splunk."
 
         
-    except Exception, e:
+    except e:
         raise Exception, "Error getting Splunk configuration via STDIN: %s" % str(e)
 
     return config

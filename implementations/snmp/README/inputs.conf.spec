@@ -9,7 +9,7 @@ ipv6= <value>
 *The SNMP port. Defaults to 161
 port= <value>
 
-*The SNMP Version , 1 or 2C, version 3 not currently supported. Defaults to 2C
+*The SNMP Version , 1 / 2C / 3 . Defaults to 2C
 snmp_version= <value>
 
 *1 or more Object Names , comma delimited , in either textual(iso.org.dod.internet.mgmt.mib-2.system.sysDescr.0) or numerical(1.3.6.1.2.1.1.3.0) format.
@@ -29,6 +29,21 @@ max_repetitions= <value>
 
 *Community String used for SNMP version 1 and 2C authentication.Defaults to "public"
 communitystring= <value>
+
+*SNMPv3 USM username
+v3_securityName= <value>
+
+*SNMPv3 secret authorization key used within USM for SNMP PDU authorization. Setting it to a non-empty value implies MD5-based PDU authentication (defaults to usmHMACMD5AuthProtocol) to take effect. Default hashing method may be changed by means of further authProtocol parameter
+v3_authKey= <value>
+
+*SNMPv3 secret encryption key used within USM for SNMP PDU encryption. Setting it to a non-empty value implies MD5-based PDU authentication (defaults to usmHMACMD5AuthProtocol) and DES-based encryption (defaults to usmDESPrivProtocol) to take effect. Default hashing and/or encryption methods may be changed by means of further authProtocol and/or privProtocol parameters. 
+v3_privKey= <value>
+
+*may be used to specify non-default hash function algorithm. Possible values include usmHMACMD5AuthProtocol (default) / usmHMACSHAAuthProtocol / usmNoAuthProtocol
+v3_authProtocol= <value> 
+
+*may be used to specify non-default ciphering algorithm. Possible values include usmDESPrivProtocol (default) / usmAesCfb128Protocol / usm3DESEDEPrivProtocol / usmAesCfb192Protocol / usmAesCfb256Protocol / usmNoPrivProtocol
+v3_privProtocol= <value>
 
 *How often to run the SNMP query (in seconds). Defaults to 60 seconds
 snmpinterval= <value>

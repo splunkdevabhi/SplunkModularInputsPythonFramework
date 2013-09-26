@@ -1,4 +1,4 @@
-## Splunk SNMP Modular Input v1.0.6beta
+## Splunk SNMP Modular Input v1.1beta
 
 ## Overview
 
@@ -9,6 +9,7 @@ This is a Splunk modular input add-on for polling SNMP attributes and catching t
 * Simple UI based configuration via Splunk Manager
 * Capture SNMP traps (Splunk becomes a SNMP trap daemon in its own right)
 * Poll SNMP object attributes
+* SNMP version 1,2c and 3 support
 * Declare objects to poll in textual or numeric format
 * Ships with a wide selection of standard industry MIBs
 * Add in your own Custom MIBs
