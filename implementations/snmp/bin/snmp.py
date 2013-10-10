@@ -245,8 +245,10 @@ def printVarBindsFromTrap(varBinds):
 def v3trapCallback(snmpEngine,stateReference,contextEngineId, contextName,varBinds,cbCtx):
     try:
         splunkevent = ""
+        server = ""
         ( transportDomain,transportAddress ) = snmpEngine.msgAndPduDsp.getTransportInfo(stateReference)
         try:
+            server = "%s" % transportAddress
             splunkevent += 'notification_from_address = "%s" ' % (transportAddress)
             splunkevent += 'notification_from_domain = "%s" ' % (transportDomain)                              
         except e:
@@ -260,7 +262,7 @@ def v3trapCallback(snmpEngine,stateReference,contextEngineId, contextName,varBin
                    
         splunkevent +=  printVarBindsFromTrap(varBinds)
         if splunkevent != "":
-            print_xml_single_instance_mode(splunkevent)
+            print_xml_single_instance_mode(server, splunkevent)
             sys.stdout.flush() 
     except e:
         logging.error("Exception receiving trap %s" % str(e))
@@ -280,15 +282,19 @@ def trapCallback(transportDispatcher, transportDomain, transportAddress, wholeMs
             reqPDU = pMod.apiMessage.getPDU(reqMsg)
             
             splunkevent =""
+            server = ""
             try:
                 splunkevent += 'notification_from_address = "%s" ' % (transportAddress)
-                splunkevent += 'notification_from_domain = "%s" ' % (transportDomain)                              
+                splunkevent += 'notification_from_domain = "%s" ' % (transportDomain)
+                server = "%s" % transportAddress
             except e:
                 logging.error("Exception resolving source address/domain of the trap: %s" % str(e))
             
             if reqPDU.isSameTypeWith(pMod.TrapPDU()):
                 if msgVer == api.protoVersion1:
-                    
+                    if server == "":
+                        server = pMod.apiTrapPDU.getAgentAddr(reqPDU).prettyPrint()
+
                     splunkevent += 'notification_enterprise = "%s" ' % (pMod.apiTrapPDU.getEnterprise(reqPDU).prettyPrint())
                     splunkevent += 'notification_agent_address = "%s" ' % (pMod.apiTrapPDU.getAgentAddr(reqPDU).prettyPrint())
                     splunkevent += 'notification_generic_trap = "%s" ' % (pMod.apiTrapPDU.getGenericTrap(reqPDU).prettyPrint())
@@ -302,7 +308,7 @@ def trapCallback(transportDispatcher, transportDomain, transportAddress, wholeMs
                 splunkevent += printVarBindsFromTrap(varBinds)      
                 
             if splunkevent != "":
-                print_xml_single_instance_mode(splunkevent)
+                print_xml_single_instance_mode(server, splunkevent)
                 sys.stdout.flush() 
     except e:
         logging.error("Exception receiving trap %s" % str(e))
@@ -432,7 +438,7 @@ def do_run():
                                 for name, val in varBindTableRow:
                                     output_element = '%s = "%s" ' % (name.prettyPrint(), val.prettyPrint())                               
                                     if split_bulk_output:
-                                        print_xml_single_instance_mode(output_element)
+                                        print_xml_single_instance_mode(destination, output_element)
                                         sys.stdout.flush()   
                                     else:    
                                         splunkevent += output_element 
@@ -442,7 +448,7 @@ def do_run():
                        
                        
                         if not split_bulk_output:
-                            print_xml_single_instance_mode(splunkevent)
+                            print_xml_single_instance_mode(destination, splunkevent)
                             sys.stdout.flush() 
                 except e:
                     logging.error("Exception polling attributes %s" % str(e))
@@ -530,12 +536,18 @@ def print_validation_error(s):
     print "<error><message>%s</message></error>" % xml.sax.saxutils.escape(s)
     
 # prints XML stream
-def print_xml_single_instance_mode(s):
-    print "<stream><event><data>%s</data></event></stream>" % xml.sax.saxutils.escape(s)
+def print_xml_single_instance_mode(server, event):
+    if server == "":
+        server = os.environ.get("SPLUNK_SERVER")
+    print "<stream><event><data>%s</data><host>%s</host></event></stream>" % (
+        xml.sax.saxutils.escape(event), server)
     
 # prints XML stream
-def print_xml_multi_instance_mode(s,stanza):
-    print "<stream><event stanza=""%s""><data>%s</data></event></stream>" % stanza,xml.sax.saxutils.escape(s)
+def print_xml_multi_instance_mode(server, event, stanza):
+    if server == "":
+        server = os.environ.get("SPLUNK_SERVER")
+    print "<stream><event stanza=""%s""><data>%s</data><host>%s</host></event></stream>" % (
+        stanza, xml.sax.saxutils.escape(event), server)
     
 # prints simple stream
 def print_simple(s):
