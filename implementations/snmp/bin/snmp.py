@@ -217,8 +217,9 @@ def do_validate():
         if validationFailed:
             sys.exit(2)
                
-    except e:
-        logging.error("Looks like an error: %s" % str(e))
+    except: # catch *all* exceptions
+        e = sys.exc_info()[1]
+        logging.error("Exception getting config: %s" % str(e))
         sys.exit(1)
         raise   
     
@@ -229,13 +230,15 @@ def printVarBindsFromTrap(varBinds):
         try:
             (symName, modName), indices = mibvar.oidToMibName(mibView, oid)                 
             splunkevent +='%s::%s.%s =  ' % (modName, symName,'.'.join([ v.prettyPrint() for v in indices]))      
-        except e:
+        except: # catch *all* exceptions
+            e = sys.exc_info()[1]
             logging.error("Exception resolving OID to MIB Name: %s" % str(e))
             splunkevent +='%s =  ' % (oid)
         try:
             decodedVal = mibvar.cloneFromMibValue(mibView,modName,symName,val)
             splunkevent +='%s ' % (decodedVal.prettyPrint())      
-        except e:
+        except: # catch *all* exceptions
+            e = sys.exc_info()[1]
             logging.error("Exception resolving OID value: %s" % str(e))
             splunkevent +='%s ' % (val.prettyPrint()) 
     return splunkevent
@@ -245,24 +248,29 @@ def printVarBindsFromTrap(varBinds):
 def v3trapCallback(snmpEngine,stateReference,contextEngineId, contextName,varBinds,cbCtx):
     try:
         splunkevent = ""
+        server = ""
         ( transportDomain,transportAddress ) = snmpEngine.msgAndPduDsp.getTransportInfo(stateReference)
         try:
+            server = "%s" % transportAddress
             splunkevent += 'notification_from_address = "%s" ' % (transportAddress)
             splunkevent += 'notification_from_domain = "%s" ' % (transportDomain)                              
-        except e:
+        except: # catch *all* exceptions
+            e = sys.exc_info()[1]
             logging.error("Exception resolving source address/domain of the trap: %s" % str(e))
         
         try:
             splunkevent += 'context_engine_id = "%s" ' % (contextEngineId.prettyPrint())
             splunkevent += 'context_name = "%s" ' % (contextName.prettyPrint())                              
-        except e:
+        except: # catch *all* exceptions
+            e = sys.exc_info()[1]
             logging.error("Exception resolving context of the trap: %s" % str(e))
                    
         splunkevent +=  printVarBindsFromTrap(varBinds)
         if splunkevent != "":
-            print_xml_single_instance_mode(splunkevent)
+            print_xml_single_instance_mode(server, splunkevent)
             sys.stdout.flush() 
-    except e:
+    except: # catch *all* exceptions
+        e = sys.exc_info()[1]
         logging.error("Exception receiving trap %s" % str(e))
             
 def trapCallback(transportDispatcher, transportDomain, transportAddress, wholeMsg):
@@ -280,15 +288,20 @@ def trapCallback(transportDispatcher, transportDomain, transportAddress, wholeMs
             reqPDU = pMod.apiMessage.getPDU(reqMsg)
             
             splunkevent =""
+            server = ""
             try:
                 splunkevent += 'notification_from_address = "%s" ' % (transportAddress)
-                splunkevent += 'notification_from_domain = "%s" ' % (transportDomain)                              
-            except e:
+                splunkevent += 'notification_from_domain = "%s" ' % (transportDomain)
+                server = "%s" % transportAddress
+            except: # catch *all* exceptions
+                e = sys.exc_info()[1]
                 logging.error("Exception resolving source address/domain of the trap: %s" % str(e))
             
             if reqPDU.isSameTypeWith(pMod.TrapPDU()):
                 if msgVer == api.protoVersion1:
-                    
+                    if server == "":
+                        server = pMod.apiTrapPDU.getAgentAddr(reqPDU).prettyPrint()
+
                     splunkevent += 'notification_enterprise = "%s" ' % (pMod.apiTrapPDU.getEnterprise(reqPDU).prettyPrint())
                     splunkevent += 'notification_agent_address = "%s" ' % (pMod.apiTrapPDU.getAgentAddr(reqPDU).prettyPrint())
                     splunkevent += 'notification_generic_trap = "%s" ' % (pMod.apiTrapPDU.getGenericTrap(reqPDU).prettyPrint())
@@ -302,9 +315,10 @@ def trapCallback(transportDispatcher, transportDomain, transportAddress, wholeMs
                 splunkevent += printVarBindsFromTrap(varBinds)      
                 
             if splunkevent != "":
-                print_xml_single_instance_mode(splunkevent)
+                print_xml_single_instance_mode(server, splunkevent)
                 sys.stdout.flush() 
-    except e:
+    except: # catch *all* exceptions
+        e = sys.exc_info()[1]
         logging.error("Exception receiving trap %s" % str(e))
                   
     return wholeMsg        
@@ -404,55 +418,59 @@ def do_run():
                 security_object = cmdgen.CommunityData(communitystring,mpModel=mp_model_val)
             
             while True:  
-                try:      
-                    if do_bulk and not snmp_version == "1":
+                if do_bulk and not snmp_version == "1":
+                    try:      
                         errorIndication, errorStatus, errorIndex, varBindTable = cmdGen.bulkCmd(
-                    security_object,
-                    transport,
-                    non_repeaters, max_repetitions,
-                    *oid_args,lookupNames=True, lookupValues=True)
-                        
-                    else:
+                            security_object,
+                            transport,
+                            non_repeaters, max_repetitions,
+                            *oid_args, lookupNames=True, lookupValues=True)
+                    except: # catch *all* exceptions
+                        e = sys.exc_info()[1]
+                        logging.error("Exception with bulkCmd to %s:%s: %s" % (destination, port, str(e)))
+                        raise
+                else:
+                    try:
                         errorIndication, errorStatus, errorIndex, varBinds = cmdGen.getCmd(
-                    security_object,
-                    transport,
-                    *oid_args,
-                    lookupNames=True, lookupValues=True)
+                            security_object,
+                            transport,
+                            *oid_args, lookupNames=True, lookupValues=True)
+                    except: # catch *all* exceptions
+                        e = sys.exc_info()[1]
+                        logging.error("Exception with bulkCmd to %s:%s: %s" % (destination, port, str(e)))
+                        raise
+
+                if errorIndication:
+                    logging.error(errorIndication)
+                elif errorStatus:
+                    logging.error(errorStatus)
+                else:
+                    splunkevent =""
                 
-                
-                    if errorIndication:
-                        logging.error(errorIndication)
-                    elif errorStatus:
-                        logging.error(errorStatus)
-                    else:
-                        splunkevent =""
-                    
-                        if do_bulk:
-                            for varBindTableRow in varBindTable:
-                                for name, val in varBindTableRow:
-                                    output_element = '%s = "%s" ' % (name.prettyPrint(), val.prettyPrint())                               
-                                    if split_bulk_output:
-                                        print_xml_single_instance_mode(output_element)
-                                        sys.stdout.flush()   
-                                    else:    
-                                        splunkevent += output_element 
-                        else:    
-                            for name, val in varBinds:
-                                splunkevent += '%s = "%s" ' % (name.prettyPrint(), val.prettyPrint())
-                       
-                       
-                        if not split_bulk_output:
-                            print_xml_single_instance_mode(splunkevent)
-                            sys.stdout.flush() 
-                except e:
-                    logging.error("Exception polling attributes %s" % str(e))
+                    if do_bulk:
+                        for varBindTableRow in varBindTable:
+                            for name, val in varBindTableRow:
+                                output_element = '%s = "%s" ' % (name.prettyPrint(), val.prettyPrint())                               
+                                if split_bulk_output:
+                                    print_xml_single_instance_mode(destination, output_element)
+                                    sys.stdout.flush()   
+                                else:    
+                                    splunkevent += output_element 
+                    else:    
+                        for name, val in varBinds:
+                            splunkevent += '%s = "%s" ' % (name.prettyPrint(), val.prettyPrint())
+                   
+                   
+                    if not split_bulk_output:
+                        print_xml_single_instance_mode(destination, splunkevent)
+                        sys.stdout.flush() 
                             
                 time.sleep(float(snmpinterval))        
             
-        except e:
+        except: # catch *all* exceptions
+            e = sys.exc_info()[1]
             logging.error("Looks like an error: %s" % str(e))
             sys.exit(1)
-            raise    
  
         
 class TrapThread(threading.Thread):
@@ -480,9 +498,10 @@ class TrapThread(threading.Thread):
             transportDispatcher.jobStarted(1)
             # Dispatcher will never finish as job#1 never reaches zero
             transportDispatcher.runDispatcher()     
-        except e:
+        except: # catch *all* exceptions
+            e = sys.exc_info()[1]
             transportDispatcher.closeDispatcher()
-            logging.error("Looks like an error: %s" % str(e))
+            logging.error("Failed to register transport and run dispatcher: %s" % str(e))
             sys.exit(1)
 
 class V3TrapThread(threading.Thread):
@@ -519,7 +538,8 @@ class V3TrapThread(threading.Thread):
         # Run I/O dispatcher which would receive queries and send confirmations
         try:
             snmpEngine.transportDispatcher.runDispatcher()
-        except e:
+        except: # catch *all* exceptions
+            e = sys.exc_info()[1]
             snmpEngine.transportDispatcher.closeDispatcher()
             logging.error("Looks like an error: %s" % str(e))
             sys.exit(1)
@@ -530,12 +550,18 @@ def print_validation_error(s):
     print "<error><message>%s</message></error>" % xml.sax.saxutils.escape(s)
     
 # prints XML stream
-def print_xml_single_instance_mode(s):
-    print "<stream><event><data>%s</data></event></stream>" % xml.sax.saxutils.escape(s)
+def print_xml_single_instance_mode(server, event):
+    if server == "":
+        server = os.environ.get("SPLUNK_SERVER")
+    print "<stream><event><data>%s</data><host>%s</host></event></stream>" % (
+        xml.sax.saxutils.escape(event), server)
     
 # prints XML stream
-def print_xml_multi_instance_mode(s,stanza):
-    print "<stream><event stanza=""%s""><data>%s</data></event></stream>" % stanza,xml.sax.saxutils.escape(s)
+def print_xml_multi_instance_mode(server, event, stanza):
+    if server == "":
+        server = os.environ.get("SPLUNK_SERVER")
+    print "<stream><event stanza=""%s""><data>%s</data><host>%s</host></event></stream>" % (
+        stanza, xml.sax.saxutils.escape(event), server)
     
 # prints simple stream
 def print_simple(s):
@@ -589,7 +615,8 @@ def get_input_config():
             raise Exception, "Invalid configuration received from Splunk."
 
         
-    except e:
+    except: # catch *all* exceptions
+        e = sys.exc_info()[1]
         raise Exception, "Error getting Splunk configuration via STDIN: %s" % str(e)
 
     return config
