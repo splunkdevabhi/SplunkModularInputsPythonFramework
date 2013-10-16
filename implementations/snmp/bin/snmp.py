@@ -37,14 +37,8 @@ from pysnmp.smi import builder
 from pysnmp.entity.rfc3413 import mibvar,ntfrcv
 from pysnmp.smi import view
 
-#set up logging
-logging.root
-logging.root.setLevel(logging.ERROR)
-formatter = logging.Formatter('%(levelname)s %(message)s')
-#with zero args , should go to STD ERR
-handler = logging.StreamHandler()
-handler.setFormatter(formatter)
-logging.root.addHandler(handler)
+# Initialize the root logger with a StreamHandler and a format message:
+logging.basicConfig(level=logging.ERROR, format='%(levelname)s %(message)s')
 
 
 SCHEME = """<scheme>
@@ -223,7 +217,6 @@ def do_validate():
         sys.exit(1)
         raise   
     
-
 def printVarBindsFromTrap(varBinds):
     splunkevent =""
     for oid, val in varBinds:
@@ -242,8 +235,6 @@ def printVarBindsFromTrap(varBinds):
             logging.error("Exception resolving OID value: %s" % str(e))
             splunkevent +='%s ' % (val.prettyPrint()) 
     return splunkevent
-    
-    
     
 def v3trapCallback(snmpEngine,stateReference,contextEngineId, contextName,varBinds,cbCtx):
     try:
@@ -333,6 +324,17 @@ def do_run():
     snmpinterval=int(config.get("snmpinterval",60))   
     ipv6=int(config.get("ipv6",0))
     
+    try: 
+        # update all the root StreamHandlers with a new formatter that includes the config information
+        for h in logging.root.handlers:
+            if isinstance(h, logging.StreamHandler):
+                h.setFormatter( logging.Formatter('%(levelname)s %(message)s snmp_stanza:{0} snmp_destination:{1} snmp_port:{2}'.format(config.get("name"), destination, port)) )
+
+    except: # catch *all* exceptions
+        e = sys.exc_info()[1]
+        logging.error("Couldn't update logging templates: %s host:'" % str(e)) 
+
+
     #snmp 1 and 2C params
     snmp_version=config.get("snmp_version","2C")
     
@@ -471,7 +473,6 @@ def do_run():
             e = sys.exc_info()[1]
             logging.error("Looks like an error: %s" % str(e))
             sys.exit(1)
- 
         
 class TrapThread(threading.Thread):
     
