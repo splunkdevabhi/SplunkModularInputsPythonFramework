@@ -31,6 +31,20 @@ This is a Splunk modular input add-on for polling SNMP attributes and catching t
 * Untar the release to your $SPLUNK_HOME/etc/apps directory
 * Restart Splunk
 
+## SNMP Version 3 Crypto Libraries
+
+If you are using SNMP version 3 , you have to obtain, build and add the pycrypto package yourself :
+
+https://pypi.python.org/pypi/pycrypto
+
+The simplest way is to create an egg for the platform you are running on and just drop this in snmp_ta/bin
+
+Alternatively to building the egg yourself, you can download a pre-built egg for your platform :
+
+https://tahoe-lafs.org/source/tahoe-lafs/deps/tahoe-lafs-dep-eggs/README.html
+
+The reason for not bundling this with the SNMP Modular Input distribution is due to encryption export controls.
+
 ## Adding Custom MIBs
 
 The pysnmp library is used under the hood so you need to convert your plain text MIB files 
