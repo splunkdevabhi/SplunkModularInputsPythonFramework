@@ -59,3 +59,9 @@ trap_host= <value>
 
 *List of MIB names to be loaded and applied to your objects
 mib_names = <value>
+
+*Python classname of custom response handler
+response_handler= <value>
+
+*Response Handler arguments string ,  key=value,key2=value2
+response_handler_args= <value>

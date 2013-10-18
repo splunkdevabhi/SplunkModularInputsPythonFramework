@@ -13,6 +13,8 @@ import threading
 
 SPLUNK_HOME = os.environ.get("SPLUNK_HOME")
 
+RESPONSE_HANDLER_INSTANCE = None
+
 #dynamically load in any eggs in /etc/apps/snmp_ta/bin
 egg_dir = SPLUNK_HOME + "/etc/apps/snmp_ta/bin/"
 for filename in os.listdir(egg_dir):
@@ -174,6 +176,18 @@ SCHEME = """<scheme>
                 <required_on_edit>false</required_on_edit>
                 <required_on_create>false</required_on_create>
             </arg>
+            <arg name="response_handler">
+                <title>Response Handler</title>
+                <description>Python classname of custom response handler</description>
+                <required_on_edit>false</required_on_edit>
+                <required_on_create>false</required_on_create>
+            </arg>
+            <arg name="response_handler_args">
+                <title>Response Handler Arguments</title>
+                <description>Response Handler arguments string ,  key=value,key2=value2</description>
+                <required_on_edit>false</required_on_edit>
+                <required_on_create>false</required_on_create>
+            </arg>
         </args>
     </endpoint>
 </scheme>
@@ -217,49 +231,29 @@ def do_validate():
         sys.exit(1)
         raise   
     
-def printVarBindsFromTrap(varBinds):
-    splunkevent =""
-    for oid, val in varBinds:
-        try:
-            (symName, modName), indices = mibvar.oidToMibName(mibView, oid)                 
-            splunkevent +='%s::%s.%s =  ' % (modName, symName,'.'.join([ v.prettyPrint() for v in indices]))      
-        except: # catch *all* exceptions
-            e = sys.exc_info()[1]
-            logging.error("Exception resolving OID to MIB Name: %s" % str(e))
-            splunkevent +='%s =  ' % (oid)
-        try:
-            decodedVal = mibvar.cloneFromMibValue(mibView,modName,symName,val)
-            splunkevent +='%s ' % (decodedVal.prettyPrint())      
-        except: # catch *all* exceptions
-            e = sys.exc_info()[1]
-            logging.error("Exception resolving OID value: %s" % str(e))
-            splunkevent +='%s ' % (val.prettyPrint()) 
-    return splunkevent
     
 def v3trapCallback(snmpEngine,stateReference,contextEngineId, contextName,varBinds,cbCtx):
     try:
-        splunkevent = ""
+        trap_metadata = ""
         server = ""
         ( transportDomain,transportAddress ) = snmpEngine.msgAndPduDsp.getTransportInfo(stateReference)
         try:
             server = "%s" % transportAddress
-            splunkevent += 'notification_from_address = "%s" ' % (transportAddress)
-            splunkevent += 'notification_from_domain = "%s" ' % (transportDomain)                              
+            trap_metadata += 'notification_from_address = "%s" ' % (transportAddress)
+            trap_metadata += 'notification_from_domain = "%s" ' % (transportDomain)                              
         except: # catch *all* exceptions
             e = sys.exc_info()[1]
             logging.error("Exception resolving source address/domain of the trap: %s" % str(e))
         
         try:
-            splunkevent += 'context_engine_id = "%s" ' % (contextEngineId.prettyPrint())
-            splunkevent += 'context_name = "%s" ' % (contextName.prettyPrint())                              
+            trap_metadata += 'context_engine_id = "%s" ' % (contextEngineId.prettyPrint())
+            trap_metadata += 'context_name = "%s" ' % (contextName.prettyPrint())                              
         except: # catch *all* exceptions
             e = sys.exc_info()[1]
             logging.error("Exception resolving context of the trap: %s" % str(e))
                    
-        splunkevent +=  printVarBindsFromTrap(varBinds)
-        if splunkevent != "":
-            print_xml_single_instance_mode(server, splunkevent)
-            sys.stdout.flush() 
+        handle_output(varBinds,server,from_trap=True,trap_metadata=trap_metadata) 
+         
     except: # catch *all* exceptions
         e = sys.exc_info()[1]
         logging.error("Exception receiving trap %s" % str(e))
@@ -281,8 +275,8 @@ def trapCallback(transportDispatcher, transportDomain, transportAddress, wholeMs
             splunkevent =""
             server = ""
             try:
-                splunkevent += 'notification_from_address = "%s" ' % (transportAddress)
-                splunkevent += 'notification_from_domain = "%s" ' % (transportDomain)
+                trap_metadata += 'notification_from_address = "%s" ' % (transportAddress)
+                trap_metadata += 'notification_from_domain = "%s" ' % (transportDomain)
                 server = "%s" % transportAddress
             except: # catch *all* exceptions
                 e = sys.exc_info()[1]
@@ -293,21 +287,20 @@ def trapCallback(transportDispatcher, transportDomain, transportAddress, wholeMs
                     if server == "":
                         server = pMod.apiTrapPDU.getAgentAddr(reqPDU).prettyPrint()
 
-                    splunkevent += 'notification_enterprise = "%s" ' % (pMod.apiTrapPDU.getEnterprise(reqPDU).prettyPrint())
-                    splunkevent += 'notification_agent_address = "%s" ' % (pMod.apiTrapPDU.getAgentAddr(reqPDU).prettyPrint())
-                    splunkevent += 'notification_generic_trap = "%s" ' % (pMod.apiTrapPDU.getGenericTrap(reqPDU).prettyPrint())
-                    splunkevent += 'notification_specific_trap = "%s" ' % (pMod.apiTrapPDU.getSpecificTrap(reqPDU).prettyPrint())
-                    splunkevent += 'notification_uptime = "%s" ' % (pMod.apiTrapPDU.getTimeStamp(reqPDU).prettyPrint())
+                    trap_metadata += 'notification_enterprise = "%s" ' % (pMod.apiTrapPDU.getEnterprise(reqPDU).prettyPrint())
+                    trap_metadata += 'notification_agent_address = "%s" ' % (pMod.apiTrapPDU.getAgentAddr(reqPDU).prettyPrint())
+                    trap_metadata += 'notification_generic_trap = "%s" ' % (pMod.apiTrapPDU.getGenericTrap(reqPDU).prettyPrint())
+                    trap_metadata += 'notification_specific_trap = "%s" ' % (pMod.apiTrapPDU.getSpecificTrap(reqPDU).prettyPrint())
+                    trap_metadata += 'notification_uptime = "%s" ' % (pMod.apiTrapPDU.getTimeStamp(reqPDU).prettyPrint())
                     
                     varBinds = pMod.apiTrapPDU.getVarBindList(reqPDU)
                 else:
                     varBinds = pMod.apiPDU.getVarBindList(reqPDU)
                     
-                splunkevent += printVarBindsFromTrap(varBinds)      
+                      
                 
-            if splunkevent != "":
-                print_xml_single_instance_mode(server, splunkevent)
-                sys.stdout.flush() 
+            handle_output(varBinds,server,from_trap=True,trap_metadata=trap_metadata) 
+            
     except: # catch *all* exceptions
         e = sys.exc_info()[1]
         logging.error("Exception receiving trap %s" % str(e))
@@ -334,7 +327,19 @@ def do_run():
         e = sys.exc_info()[1]
         logging.error("Couldn't update logging templates: %s host:'" % str(e)) 
 
+    response_handler_args={} 
+    response_handler_args_str=config.get("response_handler_args")
+    if not response_handler_args_str is None:
+        response_handler_args = dict((k.strip(), v.strip()) for k,v in 
+              (item.split('=') for item in response_handler_args_str.split(delimiter)))
+        
+    response_handler=config.get("response_handler","DefaultResponseHandler")
+    module = __import__("responsehandlers")
+    class_ = getattr(module,response_handler)
 
+    global RESPONSE_HANDLER_INSTANCE
+    RESPONSE_HANDLER_INSTANCE = class_(**response_handler_args)
+    
     #snmp 1 and 2C params
     snmp_version=config.get("snmp_version","2C")
     
@@ -477,25 +482,10 @@ def do_run():
                 elif errorStatus:
                     logging.error(errorStatus)
                 else:
-                    splunkevent =""
-                
                     if do_bulk:
-                        for varBindTableRow in varBindTable:
-                            for name, val in varBindTableRow:
-                                output_element = '%s = "%s" ' % (name.prettyPrint(), val.prettyPrint())                               
-                                if split_bulk_output:
-                                    print_xml_single_instance_mode(destination, output_element)
-                                    sys.stdout.flush()   
-                                else:    
-                                    splunkevent += output_element 
-                    else:    
-                        for name, val in varBinds:
-                            splunkevent += '%s = "%s" ' % (name.prettyPrint(), val.prettyPrint())
-                   
-                   
-                    if not split_bulk_output:
-                        print_xml_single_instance_mode(destination, splunkevent)
-                        sys.stdout.flush() 
+                        handle_output(varBindTable,destination,table=True,split_bulk_output=split_bulk_output) 
+                    else:  
+                        handle_output(varBinds,destination,table=False,split_bulk_output=split_bulk_output)  
                             
                 time.sleep(float(snmpinterval))        
             
@@ -579,24 +569,18 @@ class V3TrapThread(threading.Thread):
 # prints validation error data to be consumed by Splunk
 def print_validation_error(s):
     print "<error><message>%s</message></error>" % xml.sax.saxutils.escape(s)
+
+def handle_output(response_object,destination,table=False,from_trap=False,trap_metadata=None,split_bulk_output=False): 
     
-# prints XML stream
-def print_xml_single_instance_mode(server, event):
-    if server == "":
-        server = os.environ.get("SPLUNK_SERVER")
-    print "<stream><event><data>%s</data><host>%s</host></event></stream>" % (
-        xml.sax.saxutils.escape(event), server)
-    
-# prints XML stream
-def print_xml_multi_instance_mode(server, event, stanza):
-    if server == "":
-        server = os.environ.get("SPLUNK_SERVER")
-    print "<stream><event stanza=""%s""><data>%s</data><host>%s</host></event></stream>" % (
-        stanza, xml.sax.saxutils.escape(event), server)
-    
-# prints simple stream
-def print_simple(s):
-    print "%s\n" % s
+    try:
+        if destination == "":
+            destination = os.environ.get("SPLUNK_SERVER")
+         
+        RESPONSE_HANDLER_INSTANCE(response_object,destination,table=table,from_trap=from_trap,trap_metadata=trap_metadata,split_bulk_output=split_bulk_output,mibView=mibView)
+        sys.stdout.flush()               
+    except:
+        e = sys.exc_info()[1]
+        logging.error("Looks like an error handle the response output: %s" % str(e))
     
 def usage():
     print "usage: %s [--scheme|--validate-arguments]"

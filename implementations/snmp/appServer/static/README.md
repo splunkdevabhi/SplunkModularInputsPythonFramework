@@ -72,6 +72,19 @@ In the configuration screen for the SNMP input in Splunk Manager , there is a fi
 Here you can specify the MIB names you want applied to the SNMP input definition ie: IF-MIB,DNS-SERVER-MIB,BRIDGE-MIB
 The MIB Name is the same as the name of the MIB python module in your egg package.
 
+### Custom Response Handlers
+
+You can provide your own custom Response Handler. This is a Python class that you should add to the 
+rest_ta/bin/responsehandlers.py module.
+
+You can then declare this class name and any parameters in the SNMP Modular Input setup page.
+
+For the most part the Default Response Handler should suffice.
+
+But there may be situations where you want to format the response in a manner that is more convenient for handling your data ie: CSV or JSON.
+Furthermore , you can also use a custom Response Handler implementation to perform preprocessing of your raw response data before sending 
+it to Splunk.
+
 ## Logging
 
 Any modular input log errors will get written to $SPLUNK_HOME/var/log/splunk/splunkd.log
