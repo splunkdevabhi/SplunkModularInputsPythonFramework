@@ -49,7 +49,21 @@ class FourSquareCheckinsEventHandler:
                 print_xml_stream(json.dumps(checkin))   
         else:
             print_xml_stream(raw_response_output)  
-                                   
+ 
+class TwitterEventHandler:
+    
+    def __init__(self,**args):
+        pass
+        
+    def __call__(self, response_object,raw_response_output,response_type,req_args,endpoint):
+        if response_type == "json":        
+            output = json.loads(raw_response_output)
+            
+            for tweet in output["statuses"]:
+                print_xml_stream(json.dumps(tweet))   
+        else:
+            print_xml_stream(raw_response_output) 
+                                              
 #HELPER FUNCTIONS
     
 # prints XML stream

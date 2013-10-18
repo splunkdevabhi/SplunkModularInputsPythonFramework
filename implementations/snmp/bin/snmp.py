@@ -341,8 +341,34 @@ def do_run():
     v3_securityName=config.get("v3_securityName","") 
     v3_authKey=config.get("v3_authKey","") 
     v3_privKey=config.get("v3_privKey","") 
-    v3_authProtocol=config.get("v3_authProtocol","usmHMACMD5AuthProtocol") 
-    v3_privProtocol=config.get("v3_privProtocol","usmDESPrivProtocol") 
+    v3_authProtocol_str=config.get("v3_authProtocol","usmHMACMD5AuthProtocol") 
+    v3_privProtocol_str=config.get("v3_privProtocol","usmDESPrivProtocol") 
+    
+    if v3_authProtocol_str == "usmHMACMD5AuthProtocol":
+        v3_authProtocol = cmdgen.usmHMACMD5AuthProtocol
+    elif v3_authProtocol_str == "usmHMACSHAAuthProtocol":
+        v3_authProtocol = cmdgen.usmHMACSHAAuthProtocol
+    elif v3_authProtocol_str == "usmNoAuthProtocol":
+        v3_authProtocol = cmdgen.usmNoAuthProtocol    
+    else:
+        v3_authProtocol = cmdgen.usmNoAuthProtocol
+        
+    
+    if v3_privProtocol_str == "usmDESPrivProtocol":
+        v3_privProtocol = cmdgen.usmDESPrivProtocol
+    elif v3_privProtocol_str == "usm3DESEDEPrivProtocol":
+        v3_privProtocol = cmdgen.usm3DESEDEPrivProtocol
+    elif v3_privProtocol_str == "usmAesCfb128Protocol":
+        v3_privProtocol = cmdgen.usmAesCfb128Protocol
+    elif v3_privProtocol_str == "usmAesCfb192Protocol":
+        v3_privProtocol = cmdgen.usmAesCfb192Protocol
+    elif v3_privProtocol_str == "usmAesCfb256Protocol":
+        v3_privProtocol = cmdgen.usmAesCfb256Protocol
+    elif v3_privProtocol_str == "usmNoPrivProtocol":
+        v3_privProtocol = cmdgen.usmNoPrivProtocol
+    else:
+        v3_privProtocol = cmdgen.usmNoPrivProtocol   
+    
     
     #object names to poll
     object_names=config.get("object_names")
@@ -372,7 +398,9 @@ def do_run():
         
     #load in custom MIBS
     cmdGen = cmdgen.CommandGenerator()
-         
+      
+      
+    
     mibBuilder = cmdGen.snmpEngine.msgAndPduDsp.mibInstrumController.mibBuilder
     
     mibSources = (builder.DirMibSource(mib_egg_dir),)  
@@ -428,7 +456,8 @@ def do_run():
                     except: # catch *all* exceptions
                         e = sys.exc_info()[1]
                         logging.error("Exception with bulkCmd to %s:%s: %s" % (destination, port, str(e)))
-                        raise
+                        time.sleep(float(snmpinterval))
+                        continue
                 else:
                     try:
                         errorIndication, errorStatus, errorIndex, varBinds = cmdGen.getCmd(
@@ -437,8 +466,9 @@ def do_run():
                             *oid_args, lookupNames=True, lookupValues=True)
                     except: # catch *all* exceptions
                         e = sys.exc_info()[1]
-                        logging.error("Exception with bulkCmd to %s:%s: %s" % (destination, port, str(e)))
-                        raise
+                        logging.error("Exception with getCmd to %s:%s: %s" % (destination, port, str(e)))
+                        time.sleep(float(snmpinterval))
+                        continue
 
                 if errorIndication:
                     logging.error(errorIndication)
