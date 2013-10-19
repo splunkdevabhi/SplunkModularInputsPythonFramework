@@ -1,5 +1,5 @@
 #add your custom response handler class to this module
-import json,csv
+import sys,json,csv
 from pysnmp.entity.rfc3413 import mibvar
 
 #the default handler , does nothing , just passes the raw output directly to STDOUT
@@ -8,9 +8,10 @@ class DefaultResponseHandler:
     def __init__(self,**args):
         pass
         
-    def __call__(self, response_object,destination,table=False,from_trap=False,trap_metadata=trap_metadata,split_bulk_output=False,mibView=None):        
+    def __call__(self, response_object,destination,table=False,from_trap=False,trap_metadata=None,split_bulk_output=False,mibView=None):        
         splunkevent =""
         
+        #handle traps
         if from_trap:
             for oid, val in response_object:
                 try:
@@ -18,18 +19,17 @@ class DefaultResponseHandler:
                     splunkevent +='%s::%s.%s =  ' % (modName, symName,'.'.join([ v.prettyPrint() for v in indices]))      
                 except: # catch *all* exceptions
                     e = sys.exc_info()[1]
-                    logging.error("Exception resolving OID to MIB Name: %s" % str(e))
                     splunkevent +='%s =  ' % (oid)
                 try:
                     decodedVal = mibvar.cloneFromMibValue(mibView,modName,symName,val)
                     splunkevent +='%s ' % (decodedVal.prettyPrint())      
                 except: # catch *all* exceptions
                     e = sys.exc_info()[1]
-                    logging.error("Exception resolving OID value: %s" % str(e))
                     splunkevent +='%s ' % (val.prettyPrint()) 
             splunkevent = trap_metadata + splunkevent       
             print_xml_single_instance_mode(destination, splunkevent)
           
+        #handle tables  
         elif table:
             for varBindTableRow in response_object:
                 for name, val in varBindTableRow:
@@ -39,15 +39,13 @@ class DefaultResponseHandler:
   
                     else:    
                         splunkevent += output_element 
+            print_xml_single_instance_mode(destination, splunkevent)            
+        #handle scalars
         else:  
             for name, val in response_object:
                 splunkevent += '%s = "%s" ' % (name.prettyPrint(), val.prettyPrint())
+            print_xml_single_instance_mode(destination, splunkevent)      
                    
-                   
-        if not split_bulk_output:
-            print_xml_single_instance_mode(destination, splunkevent)
-
-
 
 # prints XML stream
 def print_xml_single_instance_mode(server, event):

@@ -272,7 +272,7 @@ def trapCallback(transportDispatcher, transportDomain, transportAddress, wholeMs
             
             reqPDU = pMod.apiMessage.getPDU(reqMsg)
             
-            splunkevent =""
+            trap_metadata =""
             server = ""
             try:
                 trap_metadata += 'notification_from_address = "%s" ' % (transportAddress)
