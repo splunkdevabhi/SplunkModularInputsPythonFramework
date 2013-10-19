@@ -1,5 +1,5 @@
 #add your custom response handler class to this module
-import sys,json,csv
+import sys,json,csv,io
 from pysnmp.entity.rfc3413 import mibvar
 
 #the default handler , does nothing , just passes the raw output directly to STDOUT
@@ -58,8 +58,7 @@ class JSONFormatterResponseHandler:
             values = []
             for varBindTableRow in response_object:
                 row = {}
-                for name, val in varBindTableRow:
-                    output_element = '%s = "%s" ' % (name.prettyPrint(), val.prettyPrint())                               
+                for name, val in varBindTableRow:                              
                     row[name.prettyPrint()] = val.prettyPrint()
                 values.append(row)
             print_xml_single_instance_mode(destination, json.dumps(values))            
@@ -69,9 +68,8 @@ class JSONFormatterResponseHandler:
             for name, val in response_object:
                 values[name.prettyPrint()] = val.prettyPrint()
             print_xml_single_instance_mode(destination, json.dumps(values))      
-                   
-    
  
+
 # prints XML stream
 def print_xml_single_instance_mode(server, event):
     
