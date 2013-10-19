@@ -38,12 +38,18 @@ If you are using SNMP version 3 , you have to obtain, build and add the pycrypto
 https://pypi.python.org/pypi/pycrypto
 
 The simplest way is to create an egg for the platform you are running on and just drop this in snmp_ta/bin
+I don't recommend installing the pycrypto package to the Splunk Python runtime's site-packages, this could have 
+unforeseen side effects.By simply adding an egg to snmp_ta/bin , you are well insulated from potentially affecting the python
+runtime adversely. 
 
 Alternatively to building the egg yourself, you can download a pre-built egg for your platform :
 
 https://tahoe-lafs.org/source/tahoe-lafs/deps/tahoe-lafs-dep-eggs/README.html
 
 The reason for not bundling this with the SNMP Modular Input distribution is due to encryption export controls.
+
+
+
 
 ## Adding Custom MIBs
 

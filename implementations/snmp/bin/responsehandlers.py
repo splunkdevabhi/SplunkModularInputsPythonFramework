@@ -47,6 +47,31 @@ class DefaultResponseHandler:
             print_xml_single_instance_mode(destination, splunkevent)      
                    
 
+class JSONFormatterResponseHandler:
+    
+    def __init__(self,**args):
+        pass
+        
+    def __call__(self, response_object,destination,table=False,from_trap=False,trap_metadata=None,split_bulk_output=False,mibView=None):        
+        #handle tables         
+        if table:
+            values = []
+            for varBindTableRow in response_object:
+                row = {}
+                for name, val in varBindTableRow:
+                    output_element = '%s = "%s" ' % (name.prettyPrint(), val.prettyPrint())                               
+                    row[name.prettyPrint()] = val.prettyPrint()
+                values.append(row)
+            print_xml_single_instance_mode(destination, json.dumps(values))            
+        #handle scalars
+        else: 
+            values = {} 
+            for name, val in response_object:
+                values[name.prettyPrint()] = val.prettyPrint()
+            print_xml_single_instance_mode(destination, json.dumps(values))      
+                   
+    
+ 
 # prints XML stream
 def print_xml_single_instance_mode(server, event):
     
