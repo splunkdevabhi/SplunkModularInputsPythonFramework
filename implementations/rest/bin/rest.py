@@ -442,7 +442,7 @@ def do_run():
             if "data" in req_args:
                 req_args_data_current = req_args["data"]
             else:
-                req_args_datra_current = ""
+                req_args_data_current = ""
              
             try:
                 if oauth2:
