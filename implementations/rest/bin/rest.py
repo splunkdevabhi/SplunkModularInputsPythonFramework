@@ -418,9 +418,32 @@ def do_run():
             req_args["proxies"]= proxies
         if request_payload and not http_method == "GET":
             req_args["data"]= request_payload
-            
+                          
+        firstRun = True
+                    
         while True:
             
+            if not firstRun:
+                if "data" in req_args:   
+                    checkParamUpdated(req_args_data_current,req_args["data"],"request_payload")
+                if "params" in req_args:
+                    checkParamUpdated(req_args_params_current,dictParameterToStringFormat(req_args["params"]),"url_args")
+                if "headers" in req_args:
+                    checkParamUpdated(req_args_headers_current,dictParameterToStringFormat(req_args["headers"]),"http_header_propertys")
+            
+            if "params" in req_args:
+                req_args_params_current = dictParameterToStringFormat(req_args["params"])
+            else:
+                req_args_params_current = ""
+            if "headers" in req_args: 
+                req_args_headers_current = dictParameterToStringFormat(req_args["headers"])
+            else:
+                req_args_headers_current = ""
+            if "data" in req_args:
+                req_args_data_current = req_args["data"]
+            else:
+                req_args_datra_current = ""
+             
             try:
                 if oauth2:
                     if http_method == "GET":
@@ -464,13 +487,33 @@ def do_run():
                 logging.error("HTTP Request error: %s" % str(e))
                 time.sleep(float(backoff_time))
                 continue
-                                 
+            
+            firstRun = False                     
             time.sleep(float(polling_interval))
             
     except RuntimeError,e:
         logging.error("Looks like an error: %s" % str(e))
         sys.exit(2) 
-
+     
+def checkParamUpdated(cached,current,rest_name):
+    
+    if not (cached == current):
+        try:
+            args = {'host':'localhost','port':SPLUNK_PORT,'token':SESSION_TOKEN}
+            service = Service(**args)   
+            item = service.inputs.__getitem__(STANZA[7:])
+            item.update(**{rest_name:current})
+        except RuntimeError,e:
+            logging.error("Looks like an error updating the modular input parameter %s: %s" % (rest_name,str(e),))   
+        
+                       
+def dictParameterToStringFormat(parameter):
+    
+    if parameter:
+        return ''.join('{}={},'.format(key, val) for key, val in parameter.items())[:-1] 
+    else:
+        return None
+    
 def oauth2_token_updater(token):
     
     try:
