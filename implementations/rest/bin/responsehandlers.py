@@ -64,7 +64,20 @@ class FourSquareCheckinsEventHandler:
         else:
             print_xml_stream(raw_response_output)  
           
-         
+class BugsenseErrorsEventHandler:
+    
+    def __init__(self,**args):
+        pass
+        
+    def __call__(self, response_object,raw_response_output,response_type,req_args,endpoint):
+        if response_type == "json":        
+            output = json.loads(raw_response_output)
+            
+            for error in output["data"]:
+                print_xml_stream(json.dumps(error))   
+        else:
+            print_xml_stream(raw_response_output)
+                     
 
 class TwitterEventHandler:
 
@@ -96,6 +109,8 @@ class TwitterEventHandler:
 # prints XML stream
 def print_xml_stream(s):
     print "<stream><event unbroken=\"1\"><data>%s</data><done/></event></stream>" % encodeXMLText(s)
+
+
 
 def encodeXMLText(text):
     text = text.replace("&", "&amp;")

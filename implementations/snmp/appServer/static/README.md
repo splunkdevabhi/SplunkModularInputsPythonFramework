@@ -1,4 +1,6 @@
-## Splunk SNMP Modular Input v1.2
+## SNMP Modular Input v1.2
+
+By Damien Dallimore and Scott Spencer
 
 ## Overview
 
@@ -19,6 +21,7 @@ This is a Splunk modular input add-on for polling SNMP attributes and catching t
 * Create as many SNMP input stanzas as you require
 * IPv4 and IPv6 support
 * Indexes SNMP events in key=value semantic format
+* Plug in your own custom response handler for formatting or pre-processing
 * Ships with some additional custom field extractions
 
 ## Dependencies
@@ -42,13 +45,7 @@ I don't recommend installing the pycrypto package to the Splunk Python runtime's
 unforeseen side effects.By simply adding an egg to snmp_ta/bin , you are well insulated from potentially affecting the python
 runtime adversely. 
 
-Alternatively to building the egg yourself, you can download a pre-built egg for your platform :
-
-https://tahoe-lafs.org/source/tahoe-lafs/deps/tahoe-lafs-dep-eggs/README.html
-
 The reason for not bundling this with the SNMP Modular Input distribution is due to encryption export controls.
-
-
 
 
 ## Adding Custom MIBs
@@ -101,19 +98,4 @@ Any modular input log errors will get written to $SPLUNK_HOME/var/log/splunk/spl
 * You are using Splunk 5+
 * Look for any errors in $SPLUNK_HOME/var/log/splunk/splunkd.log
 
-## Contact
 
-This project was initiated by Damien Dallimore & Scott Spencer 
-<table>
-
-<tr>
-<td><em>Email</em></td>
-<td>ddallimore@splunk.com</td>
-</tr>
-<tr>
-<td><em>Email</em></td>
-<td>sspencer@splunk.com</td>
-</tr>
-
-
-</table>
