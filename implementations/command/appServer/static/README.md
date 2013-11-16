@@ -1,6 +1,6 @@
-# Splunk Command Modular Input v1.0beta
+# Splunk Command Modular Input v1.1
 by Damien Dallimore
-June 2013
+November 2013
 ----
 
 ## Overview
@@ -29,6 +29,8 @@ You can then declare this class name and any parameters in the Command Input set
 
 Some commands will keep STD OUT open and stream results.For these scenarios ensure you check the "streaming output" option on the setup page.
 
+## Environment variables
+Environnment variables in the format $VARIABLE$ can be included in the command name and command arguments and they will be dynamically substituted ie: $SPLUNK_HOME$
 
 ## Logging
 

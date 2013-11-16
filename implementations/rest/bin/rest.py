@@ -419,18 +419,9 @@ def do_run():
         if request_payload and not http_method == "GET":
             req_args["data"]= request_payload
                           
-        firstRun = True
                     
         while True:
-            
-            if not firstRun:
-                if "data" in req_args:   
-                    checkParamUpdated(req_args_data_current,req_args["data"],"request_payload")
-                if "params" in req_args:
-                    checkParamUpdated(req_args_params_current,dictParameterToStringFormat(req_args["params"]),"url_args")
-                if "headers" in req_args:
-                    checkParamUpdated(req_args_headers_current,dictParameterToStringFormat(req_args["headers"]),"http_header_propertys")
-            
+                        
             if "params" in req_args:
                 req_args_params_current = dictParameterToStringFormat(req_args["params"])
             else:
@@ -488,7 +479,14 @@ def do_run():
                 time.sleep(float(backoff_time))
                 continue
             
-            firstRun = False                     
+            
+            if "data" in req_args:   
+                checkParamUpdated(req_args_data_current,req_args["data"],"request_payload")
+            if "params" in req_args:
+                checkParamUpdated(req_args_params_current,dictParameterToStringFormat(req_args["params"]),"url_args")
+            if "headers" in req_args:
+                checkParamUpdated(req_args_headers_current,dictParameterToStringFormat(req_args["headers"]),"http_header_propertys")
+                               
             time.sleep(float(polling_interval))
             
     except RuntimeError,e:

@@ -10,8 +10,7 @@ class DefaultResponseHandler:
     def __call__(self, response_object,raw_response_output,response_type,req_args,endpoint):        
         print_xml_stream(raw_response_output)
           
-        
-        
+
 class MyResponseHandler:
     
     def __init__(self,**args):

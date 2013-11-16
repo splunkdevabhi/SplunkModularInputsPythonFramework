@@ -1,9 +1,9 @@
 [command://<name>]
 
-*command name
+*command name , environment variables in the format $VARIABLE$ can be included and they will be substituted ie: $SPLUNK_HOME$
 command_name= <value>
 
-*command args
+*command args, environment variables in the format $VARIABLE$ can be included and they will be substituted ie: $SPLUNK_HOME$
 command_args= <value>
 
 *whether or not command output is streaming or not

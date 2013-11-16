@@ -6,7 +6,7 @@ All Rights Reserved
 
 '''
 
-import sys,logging,os,time,subprocess
+import sys,logging,os,time,subprocess,re
 import xml.dom.minidom, xml.sax.saxutils
 
 #set up logging
@@ -35,13 +35,13 @@ SCHEME = """<scheme>
             </arg>
             <arg name="command_name">
                 <title>Command Name</title>
-                <description>Name of the system command if on the PATH (ps),  or if not , the full path to the command (/bin/ps)</description>
+                <description>Name of the system command if on the PATH (ps),  or if not , the full path to the command (/bin/ps).Environment variables in the format $VARIABLE$ can be included and they will be substituted ie: $SPLUNK_HOME$</description>
                 <required_on_edit>true</required_on_edit>
                 <required_on_create>true</required_on_create>
             </arg>
             <arg name="command_args">
                 <title>Command Arguments</title>
-                <description>Arguments string for the command</description>
+                <description>Arguments string for the command.Environment variables in the format $VARIABLE$ can be included and they will be substituted ie: $SPLUNK_HOME$</description>
                 <required_on_edit>false</required_on_edit>
                 <required_on_create>false</required_on_create>
             </arg> 
@@ -138,7 +138,15 @@ def do_run():
     command_string = command_name
     if command_args:
         command_string = command_string+" "+command_args
-        
+     
+    try:    
+        env_var_tokens = re.findall("\$(?:\w+)\$",command_string)
+        for token in env_var_tokens:
+            command_string = command_string.replace(token,os.environ.get(token[1:-1]))
+    except: 
+        e = sys.exc_info()[1]
+        logging.error("Looks like an error replacing environment variables: %s" % str(e))  
+         
     streaming_output=int(config.get("streaming_output",0))
     
     execution_interval=int(config.get("execution_interval",60))

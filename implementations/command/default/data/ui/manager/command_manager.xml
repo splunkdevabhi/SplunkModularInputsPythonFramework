@@ -20,13 +20,13 @@
           <view name="list"/>
           <view name="edit"/>
           <view name="create"/>
-          <key name="exampleText">Name of the system command if on the PATH (ps),  or if not , the full path to the command (/bin/ps)</key>
+          <key name="exampleText">Name of the system command if on the PATH (ps),  or if not , the full path to the command (/bin/ps).Environment variables in the format $VARIABLE$ can be included and they will be substituted ie: $SPLUNK_HOME$</key>
         </element>
         <element name="command_args" type="textfield" label="Command Arguments">
           <view name="list"/>
           <view name="edit"/>
           <view name="create"/>
-          <key name="exampleText">Arguments string for the command</key>
+          <key name="exampleText">Arguments string for the command.Environment variables in the format $VARIABLE$ can be included and they will be substituted ie: $SPLUNK_HOME$</key>
         </element>
         <element name="streaming_output" type="checkbox" label="Streaming Output ?">
 
