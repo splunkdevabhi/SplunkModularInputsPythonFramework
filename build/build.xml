@@ -57,6 +57,10 @@
             <fileset dir="implementations/${modinput_to_build}/README" />
         </copy>
 
+        <copy todir="${temp_build}/static" >
+
+            <fileset dir="implementations/${modinput_to_build}/static" />
+        </copy>
         
 
 
