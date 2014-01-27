@@ -76,7 +76,18 @@ class BugsenseErrorsEventHandler:
                 print_xml_stream(json.dumps(error))   
         else:
             print_xml_stream(raw_response_output)
-                     
+
+class MyCustomHandler:
+    
+    def __init__(self,**args):
+        pass
+        
+    def __call__(self, response_object,raw_response_output,response_type,req_args,endpoint):
+        
+        req_args["data"] = 'What does the fox say'   
+         
+        print_xml_stream(raw_response_output)
+                               
 
 class TwitterEventHandler:
 
@@ -102,7 +113,10 @@ class TwitterEventHandler:
                        
         else:
             print_xml_stream(raw_response_output)
-                                        
+
+
+                                      
+                                                                             
 #HELPER FUNCTIONS
     
 # prints XML stream
