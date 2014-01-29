@@ -6,7 +6,7 @@ All Rights Reserved
 
 '''
 
-import sys,logging,os,time,re
+import sys, logging, os, time, re
 import xml.dom.minidom
 
 SPLUNK_HOME = os.environ.get("SPLUNK_HOME")
@@ -24,15 +24,10 @@ for filename in os.listdir(EGG_DIR):
     if filename.endswith(".egg"):
         sys.path.append(EGG_DIR + filename) 
        
-import requests,json
-from requests.auth import HTTPBasicAuth
-from requests.auth import HTTPDigestAuth
-from requests_oauthlib import OAuth1
-from requests_oauthlib import OAuth2Session
-from oauthlib.oauth2 import WebApplicationClient 
-from requests.auth import AuthBase
+import requests, json
 from splunklib.client import connect
 from splunklib.client import Service
+
            
 #set up logging
 logging.root
@@ -177,29 +172,32 @@ def do_run():
    
     #params
     
-    vehicle_id=config.get("vehicle_id")
+    vehicle_id = config.get("vehicle_id")
     api_base = config.get("api_base")
     api_path = config.get("endpoint")
-    api_path_resolved = api_path.replace('{vehicle_id}', vehicle_id);
-    endpoint=api_base+api_path_resolved
     
+    if vehicle_id:
+        api_path_resolved = api_path.replace('{vehicle_id}', vehicle_id);
+        endpoint = api_base + api_path_resolved
+    else:
+        endpoint = api_base + api_path
 
-    http_method=config.get("http_method","GET")
+    http_method = config.get("http_method", "GET")
     
     
-    user=config.get("user")
-    password=config.get("password")
+    user = config.get("user")
+    password = config.get("password")
     
-    cookie_s_portal_session=config.get("cookie_s_portal_session")
-    cookie_user_credentials=config.get("cookie_user_credentials")
+    cookie_s_portal_session = config.get("cookie_s_portal_session")
+    cookie_user_credentials = config.get("cookie_user_credentials")
 
    
-    response_type=config.get("response_type","json")
+    response_type = config.get("response_type", "json")
     
-    http_proxy=config.get("http_proxy")
-    https_proxy=config.get("https_proxy")
+    http_proxy = config.get("http_proxy")
+    https_proxy = config.get("https_proxy")
     
-    proxies={}
+    proxies = {}
     
     if not http_proxy is None:
         proxies["http"] = http_proxy   
@@ -207,56 +205,47 @@ def do_run():
         proxies["https"] = https_proxy 
         
     
-    request_timeout=int(config.get("request_timeout",30))
+    request_timeout = int(config.get("request_timeout", 30))
     
-    backoff_time=int(config.get("backoff_time",10))
+    backoff_time = int(config.get("backoff_time", 10))
     
-    polling_interval=int(config.get("polling_interval",60))
+    polling_interval = int(config.get("polling_interval", 60))
     
-    index_error_response_codes=int(config.get("index_error_response_codes",0))
+    index_error_response_codes = int(config.get("index_error_response_codes", 0))
     
-    response_filter_pattern=config.get("response_filter_pattern")
+    response_filter_pattern = config.get("response_filter_pattern")
     
     if response_filter_pattern:
         global REGEX_PATTERN
         REGEX_PATTERN = re.compile(response_filter_pattern)
         
-    response_handler_args={} 
-    response_handler_args_str=config.get("response_handler_args")
+    response_handler_args = {} 
+    response_handler_args_str = config.get("response_handler_args")
     if not response_handler_args_str is None:
-        response_handler_args = dict((k.strip(), v.strip()) for k,v in 
+        response_handler_args = dict((k.strip(), v.strip()) for k, v in 
               (item.split('=') for item in response_handler_args_str.split(delimiter)))
         
-    response_handler=config.get("response_handler","DefaultResponseHandler")
+    response_handler = config.get("response_handler", "DefaultResponseHandler")
     module = __import__("responsehandlers")
-    class_ = getattr(module,response_handler)
+    class_ = getattr(module, response_handler)
 
     global RESPONSE_HANDLER_INSTANCE
     RESPONSE_HANDLER_INSTANCE = class_(**response_handler_args)
    
-    custom_auth_handler=config.get("custom_auth_handler","TeslaAuth")
-    
-    if custom_auth_handler:
-        module = __import__("authhandlers")
-        class_ = getattr(module,custom_auth_handler)
-        custom_auth_handler_args={'user':user,'password':password,'api_base':api_base} 
-        CUSTOM_AUTH_HANDLER_INSTANCE = class_(**custom_auth_handler_args)
-    
-    
-    if cookie_s_portal_session and cookie_user_credentials:
-      cookies = {'_s_portal_session':cookie_s_portal_session,'user_credentials':cookie_user_credentials} 
 
     try: 
-        auth = CUSTOM_AUTH_HANDLER_INSTANCE
             
-        req_args = {"verify" : False ,"timeout" : float(request_timeout)}
+        req_args = {"verify" : False , "timeout" : float(request_timeout)}
 
-        if auth:
-            req_args["auth"]= auth
+        
         if proxies:
-            req_args["proxies"]= proxies
-        if cookies:
-            req_args["cookies"]= cookies             
+            req_args["proxies"] = proxies
+
+        cookies = {}
+        if cookie_s_portal_session and cookie_user_credentials:
+            cookies = {'_s_portal_session':cookie_s_portal_session, 'user_credentials':cookie_user_credentials} 
+            req_args["cookies"] = cookies
+                         
                     
         while True:
                         
@@ -267,9 +256,28 @@ def do_run():
             
              
             try:
-                r = requests.get(endpoint,**req_args)
+
+                if not "cookies" in req_args:
+                    
+                    #requests will role this out into form url encoded format
+                    req_args['data'] = {'user_session[email]':user, 'user_session[password]':password}
+                    login_url = api_base + '/login'
+                    #perform auth request
+                    r = requests.post(login_url, **req_args)
+                    
+                    #get the auth cookies
+                    credentials_cookie = r.cookies['user_credentials'] 
+                    session_cookie = r.cookies['_s_portal_session']
+                    del req_args['data']
+                    
+                    #set the auth cookies for API requests
+                    cookies = {'_s_portal_session':session_cookie, 'user_credentials':credentials_cookie} 
+                    req_args['cookies'] = cookies
+                    
+                #perform API request
+                r = requests.get(endpoint, **req_args)
                 
-            except requests.exceptions.Timeout,e:
+            except requests.exceptions.Timeout, e:
                 logging.error("HTTP Request Timeout error: %s" % str(e))
                 time.sleep(float(backoff_time))
                 continue
@@ -279,20 +287,15 @@ def do_run():
                 continue
             try:
                 r.raise_for_status()
-                if streaming_request:
-                    for line in r.iter_lines():
-                        if line:
-                            handle_output(r,line,response_type,req_args,endpoint)  
-                else:                    
-                    handle_output(r,r.text,response_type,req_args,endpoint)
-            except requests.exceptions.HTTPError,e:
+                handle_output(r, r.text, response_type, req_args, endpoint)
+            except requests.exceptions.HTTPError, e:
                 #reset for reauth
-                if 'cookies' in req_Args:
+                if 'cookies' in req_args:
                     del req_args['cookies']
                 error_output = r.text
                 error_http_code = r.status_code
                 if index_error_response_codes:
-                    error_event=""
+                    error_event = ""
                     error_event += 'http_error_code = %s error_message = %s' % (error_http_code, error_output) 
                     print_xml_single_instance_mode(error_event)
                     sys.stdout.flush()
@@ -302,24 +305,23 @@ def do_run():
             
             
             if "cookies" in req_args:   
-                checkCookiesUpdated(req_args_cookies_current,dictParameterToStringFormat(req_args["cookies"]),req_args["cookies"])
+                checkCookiesUpdated(req_args_cookies_current, dictParameterToStringFormat(req_args["cookies"]), req_args["cookies"])
                               
             time.sleep(float(polling_interval))
             
-    except RuntimeError,e:
+    except RuntimeError, e:
         logging.error("Looks like an error: %s" % str(e))
         sys.exit(2) 
      
-def checkCookiesUpdated(cached,current,cookies):
+def checkCookiesUpdated(cached, current, cookies):
     
     if not (cached == current):
         try:
-            args = {'host':'localhost','port':SPLUNK_PORT,'token':SESSION_TOKEN}
+            args = {'host':'localhost', 'port':SPLUNK_PORT, 'token':SESSION_TOKEN}
             service = Service(**args)   
             item = service.inputs.__getitem__(STANZA[8:])
-            item.update(**{'cookie_s_portal_session':cookies['_s_portal_session']})
-            item.update(**{'cookie_user_credentials':cookies['user_credentials']})
-        except RuntimeError,e:
+            item.update(**{'cookie_s_portal_session':cookies['_s_portal_session'], 'cookie_user_credentials':cookies['user_credentials']})
+        except RuntimeError, e:
             logging.error("Looks like an error updating the modular input parameter cookies")   
         
                        
@@ -331,16 +333,16 @@ def dictParameterToStringFormat(parameter):
         return None
     
             
-def handle_output(response,output,type,req_args,endpoint): 
+def handle_output(response, output, type, req_args, endpoint): 
     
     try:
         if REGEX_PATTERN:
             search_result = REGEX_PATTERN.search(output)
             if search_result == None:
                 return   
-        RESPONSE_HANDLER_INSTANCE(response,output,type,req_args,endpoint)
+        RESPONSE_HANDLER_INSTANCE(response, output, type, req_args, endpoint)
         sys.stdout.flush()               
-    except RuntimeError,e:
+    except RuntimeError, e:
         logging.error("Looks like an error handle the response output: %s" % str(e))
 
 # prints validation error data to be consumed by Splunk

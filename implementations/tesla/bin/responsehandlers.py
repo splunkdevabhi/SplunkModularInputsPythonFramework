@@ -4,19 +4,19 @@ import datetime
 #the default handler , does nothing , just passes the raw output directly to STDOUT
 class DefaultResponseHandler:
     
-    def __init__(self,**args):
+    def __init__(self, **args):
         pass
         
-    def __call__(self, response_object,raw_response_output,response_type,req_args,endpoint):        
+    def __call__(self, response_object, raw_response_output, response_type, req_args, endpoint):        
         print_xml_stream(raw_response_output)
           
 
 class MyCustomTeslaHandler:
     
-    def __init__(self,**args):
+    def __init__(self, **args):
         pass
         
-    def __call__(self, response_object,raw_response_output,response_type,req_args,endpoint):
+    def __call__(self, response_object, raw_response_output, response_type, req_args, endpoint):
         
         req_args["data"] = 'What does the fox say'           
         print_xml_stream(raw_response_output)
