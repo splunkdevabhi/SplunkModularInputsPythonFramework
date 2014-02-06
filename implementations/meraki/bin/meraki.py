@@ -98,23 +98,31 @@ class MerakiHandler(BaseHTTPRequestHandler):
  
     def do_GET(self):
         if self.path == '/events' :
-            self._set_headers()
-            self.wfile.write(meraki_validator)
+            try:
+                self._set_headers()
+                self.wfile.write(meraki_validator)
+            except: # catch *all* exceptions
+                e = sys.exc_info()[1]
+                logging.error("Exception handling GET request for /events")
         else :    
             logging.error("POST path %s is not recognised" % self.path ) 
  
     def do_POST(self):
         if self.path == '/events' :
-            content_len = int(self.headers.getheader('content-length'))
-            post_body = self.rfile.read(content_len)
-            post_params = dict((k.strip(), v.strip()) for k,v in (item.split('=') for item in post_body.split('&')))
-            content = json.loads(post_params["data"])
-            request_secret = content["secret"]
-            if request_secret == meraki_secret :
-                print_xml_stream(json.dumps(content))
-                sys.stdout.flush()
-            else :    
-                logging.error("Request Secret %s does not match" % request_secret )
+            try:
+                content_len = int(self.headers.getheader('content-length'))
+                post_body = self.rfile.read(content_len)
+                post_params = dict((k.strip(), v.strip()) for k,v in (item.split('=') for item in post_body.split('&')))
+                content = json.loads(post_params["data"])
+                request_secret = content["secret"]
+                if request_secret == meraki_secret :
+                    print_xml_stream(json.dumps(content))
+                    sys.stdout.flush()
+                else :    
+                   logging.error("Request Secret %s does not match" % request_secret )
+            except: # catch *all* exceptions
+                e = sys.exc_info()[1]
+                logging.error("Exception handling POST request for /events.Body Content : %s" % post_body)
         else :    
             logging.error("POST path %s is not recognised" % self.path )   
 
