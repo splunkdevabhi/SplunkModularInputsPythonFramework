@@ -10,6 +10,7 @@ import sys,logging,json
 import xml.dom.minidom, xml.sax.saxutils
 from BaseHTTPServer import BaseHTTPRequestHandler, HTTPServer
 import SocketServer
+import urllib 
 
 #set up logging
 logging.root
@@ -112,12 +113,14 @@ class MerakiHandler(BaseHTTPRequestHandler):
             try:
                 content_len = int(self.headers.getheader('content-length'))
                 post_body = self.rfile.read(content_len)
-                post_params = dict((k.strip(), v.strip()) for k,v in (item.split('=') for item in post_body.split('&')))
+                post_body_decoded = urllib.unquote(post_body).decode("utf8")
+                post_params = dict((k.strip(), v.strip()) for k,v in (item.split('=') for item in post_body_decoded.split('&')))
                 content = json.loads(post_params["data"])
                 request_secret = content["secret"]
                 if request_secret == meraki_secret :
-                    print_xml_stream(json.dumps(content))
-                    sys.stdout.flush()
+                    for probing_event in content["probing"]:
+                        print_xml_stream(json.dumps(probing_event))
+                        sys.stdout.flush()
                 else :    
                    logging.error("Request Secret %s does not match" % request_secret )
             except: # catch *all* exceptions
