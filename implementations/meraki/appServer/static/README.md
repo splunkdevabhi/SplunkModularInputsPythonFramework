@@ -2,7 +2,8 @@
 
 ## Overview
 
-This is a Splunk modular input add-on for Cisco Meraki.
+This is a Splunk modular input add-on for Cisco Meraki that allows you to receive 
+JSON probe events from the Meraki Presence Cloud.
 
 
 ## Dependencies
@@ -14,6 +15,8 @@ This is a Splunk modular input add-on for Cisco Meraki.
 
 * Untar the release to your $SPLUNK_HOME/etc/apps directory
 * Restart Splunk
+* navigate to Data inputs -> Meraki to setup a new Meraki HTTP server
+* enter the Meraki secret and validator that your Meraki administrator has setup for you
 
 
 ## Logging
