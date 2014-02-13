@@ -40,9 +40,8 @@ If you are using SNMP version 3 , you have to obtain, build and add the pycrypto
 
 https://pypi.python.org/pypi/pycrypto
 
-The simplest way is to create an egg for the platform you are running on and just drop this in snmp_ta/bin.
-I don't recommend installing the pycrypto package to the Splunk Python runtime's site-packages, this could have unforeseen side effects.By simply adding an egg to snmp_ta/bin , you are well insulated from potentially affecting the python
-runtime adversely. 
+The simplest way is to build pycrypto and drop the "Crypto" directory in $SPLUNK_HOME/etc/apps/snmp_ta/bin.
+I don't recommend installing the pycrypto package to the Splunk Python runtime's site-packages, this could have unforeseen side effects.
 
 ### Building and installing PyCrypto
 
@@ -60,10 +59,10 @@ So , here are a few instructions for building and installing pycrypto yourself :
         python setup.py build
         python setup.py install
         python setup.py test
-
+        
 3) browse to where the Crypto module was installed to ie: /usr/local/lib/python2.7/dist-packages/Crypto
 
-4) Add this module to a python ".egg" file (which is just a zipped archive) , and copy the egg file to $SPLUNK_HOME/etc/apps/snmp_ta/bin ie : zip -r pycrypto.egg Crypto/
+4) Copy the "Crypto" directory to $SPLUNK_HOME/etc/apps/snmp_ta/bin
 
 
 ## Adding Custom MIBs
