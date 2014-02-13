@@ -1,3 +1,7 @@
+1.2.1
+-----
+Minor cosmetic fixes
+
 1.2
 ---
 SNMP v3 support , please follow the docs regarding pycrypto dependencies

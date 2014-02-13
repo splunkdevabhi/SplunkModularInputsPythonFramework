@@ -434,7 +434,7 @@ def do_run():
             trapThread = V3TrapThread(trap_port,trap_host,ipv6,v3_securityName,v3_authKey,v3_authProtocol,v3_privKey,v3_privProtocol)
             trapThread.start()  
       
-    if not (object_names is None and destination is None):      
+    if not (object_names is None) and not(destination is None):      
         try:
                        
             if ipv6:
