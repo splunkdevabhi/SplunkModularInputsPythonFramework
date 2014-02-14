@@ -255,6 +255,12 @@ SCHEME = """<scheme>
                 <required_on_edit>false</required_on_edit>
                 <required_on_create>false</required_on_create>
             </arg>
+            <arg name="cookies">
+                <title>Cookies</title>
+                <description>Persist cookies in format key=value,key2=value2,...</description>
+                <required_on_edit>false</required_on_edit>
+                <required_on_create>false</required_on_create>
+            </arg>
         </args>
     </endpoint>
 </scheme>
@@ -345,7 +351,12 @@ def do_run():
     if not https_proxy is None:
         proxies["https"] = https_proxy 
         
-    
+    cookies={} 
+    cookies_str=config.get("cookies")
+    if not cookies_str is None:
+        cookies = dict((k.strip(), v.strip()) for k,v in 
+              (item.split('=') for item in cookies_str.split(delimiter)))
+        
     request_timeout=int(config.get("request_timeout",30))
     
     backoff_time=int(config.get("backoff_time",10))
@@ -412,6 +423,8 @@ def do_run():
             req_args["auth"]= auth
         if url_args:
             req_args["params"]= url_args
+        if cookies:
+            req_args["cookies"]= cookies
         if http_header_propertys:
             req_args["headers"]= http_header_propertys
         if proxies:
@@ -426,6 +439,10 @@ def do_run():
                 req_args_params_current = dictParameterToStringFormat(req_args["params"])
             else:
                 req_args_params_current = ""
+            if "cookies" in req_args:
+                req_args_cookies_current = dictParameterToStringFormat(req_args["cookies"])
+            else:
+                req_args_cookies_current = ""    
             if "headers" in req_args: 
                 req_args_headers_current = dictParameterToStringFormat(req_args["headers"])
             else:
@@ -486,7 +503,9 @@ def do_run():
                 checkParamUpdated(req_args_params_current,dictParameterToStringFormat(req_args["params"]),"url_args")
             if "headers" in req_args:
                 checkParamUpdated(req_args_headers_current,dictParameterToStringFormat(req_args["headers"]),"http_header_propertys")
-                               
+            if "cookies" in req_args:
+                checkParamUpdated(req_args_cookies_current,dictParameterToStringFormat(req_args["cookies"]),"cookies")
+                                 
             time.sleep(float(polling_interval))
             
     except RuntimeError,e:

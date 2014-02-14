@@ -7,7 +7,10 @@ class DefaultResponseHandler:
     def __init__(self,**args):
         pass
         
-    def __call__(self, response_object,raw_response_output,response_type,req_args,endpoint):        
+    def __call__(self, response_object,raw_response_output,response_type,req_args,endpoint):
+        cookies = response_object.cookies
+        if cookies:
+            req_args["cookies"] = cookies        
         print_xml_stream(raw_response_output)
           
 

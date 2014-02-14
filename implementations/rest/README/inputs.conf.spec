@@ -79,6 +79,9 @@ custom_auth_handler_args= <value>
 *Delimiter to use for any multi "key=value" field inputs
 delimiter= <value>
 
+*For persisting Cookies
+cookies= <value>
+
 
 
 

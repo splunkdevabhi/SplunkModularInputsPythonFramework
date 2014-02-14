@@ -1,4 +1,4 @@
-# Splunk REST API Modular Input v1.3.2
+# Splunk REST API Modular Input v1.3.3
 
 ## Overview
 
@@ -17,6 +17,7 @@ This is a Splunk modular input add-on for polling REST APIs.
 * Configurable polling interval
 * Configurable timeouts
 * Configurable indexing of error codes
+* Persist and retrieve cookies
 
 ### Authentication
 
