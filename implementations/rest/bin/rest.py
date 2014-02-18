@@ -456,7 +456,7 @@ def do_run():
             try:    
                 substitution_tokens = re.findall("\$(?:\w+)\$",endpoint)
                 for token in substitution_tokens:
-                    endpoint = endpoint.replace(token,getattr('tokens',token[1:-1])())
+                    endpoint = endpoint.replace(token,getattr(tokens,token[1:-1])())
             except: 
                 e = sys.exc_info()[1]
                 logging.error("Looks like an error substituting tokens in the endpoint url: %s" % str(e))  
