@@ -8,6 +8,7 @@ All Rights Reserved
 
 import sys,logging,os,time,re
 import xml.dom.minidom
+import tokens
 
 SPLUNK_HOME = os.environ.get("SPLUNK_HOME")
 
@@ -451,7 +452,16 @@ def do_run():
                 req_args_data_current = req_args["data"]
             else:
                 req_args_data_current = ""
-             
+            
+            try:    
+                substitution_tokens = re.findall("\$(?:\w+)\$",endpoint)
+                for token in substitution_tokens:
+                    endpoint = endpoint.replace(token,getattr('tokens',token[1:-1])())
+            except: 
+                e = sys.exc_info()[1]
+                logging.error("Looks like an error substituting tokens in the endpoint url: %s" % str(e))  
+         
+         
             try:
                 if oauth2:
                     if http_method == "GET":

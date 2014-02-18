@@ -1,4 +1,4 @@
-# Splunk REST API Modular Input v1.3.3
+# Splunk REST API Modular Input v1.3.4
 
 ## Overview
 
@@ -47,6 +47,15 @@ rest_ta/bin/responsehandlers.py module.
 
 You can then declare this class name and any parameters in the REST Input setup page.
 
+#Token substitution in Endpoint URL
+
+There is support for dynamic token substitution in the endpoint URL
+
+ie : /someurl/foo/$sometoken$/goo 
+
+$sometoken$ will get substituted with the output of the 'sometoken' function in bin/tokens.py
+
+So you can add you own tokens simply by adding a function to bin/tokens.py
 
 ## Dependencies
 

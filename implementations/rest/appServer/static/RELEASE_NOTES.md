@@ -1,3 +1,13 @@
+1.3.4
+-----
+
+Added support for dynamic token substitution in the endpoint URL
+
+ie : /someurl/foo/$sometoken$/goo 
+
+$sometoken$ will get substituted with the output of the 'sometoken' function
+in bin/tokens.py
+
 1.3.3
 -----
 Added support to persist and retrieve cookies
