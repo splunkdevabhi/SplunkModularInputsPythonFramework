@@ -1,5 +1,8 @@
 [snmp://<name>]
 
+*attributes | traps
+snmp_mode = <value>
+
 *IP or hostname of the device you would like to query
 destination= <value>
 

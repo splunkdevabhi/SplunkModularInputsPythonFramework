@@ -1,4 +1,4 @@
-## SNMP Modular Input v1.2.1
+## SNMP Modular Input v1.2.2
 
 By Damien Dallimore and Scott Spencer
 

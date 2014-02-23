@@ -1,3 +1,7 @@
+1.2.2
+-----
+Updated the manager UI
+
 1.2.1
 -----
 Minor cosmetic fixes

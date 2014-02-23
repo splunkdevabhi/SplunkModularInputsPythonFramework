@@ -55,7 +55,13 @@ SCHEME = """<scheme>
             <arg name="name">
                 <title>SNMP Input Name</title>
                 <description>Name of this SNMP input</description>
-            </arg>                  
+            </arg>  
+            <arg name="snmp_mode">
+                <title>SNMP Mode</title>
+                <description>Whether or not this stanza is for polling attributes or listening for traps</description>
+                <required_on_edit>false</required_on_edit>
+                <required_on_create>false</required_on_create>
+            </arg>                
             <arg name="destination">
                 <title>Destination</title>
                 <description>IP or hostname of the device you would like to query</description>
@@ -312,6 +318,7 @@ def do_run():
     
     config = get_input_config() 
     #params
+    snmp_mode=config.get("snmp_mode","")
     destination=config.get("destination")
     port=int(config.get("port",161))
     snmpinterval=int(config.get("snmpinterval",60))   
@@ -392,6 +399,10 @@ def do_run():
     
     #TRAP listener params
     listen_traps=int(config.get("listen_traps",0))
+    #some backwards compatibility gymnastics
+    if snmp_mode == 'traps':
+        listen_traps = 1
+        
     trap_port=int(config.get("trap_port",162))
     trap_host=config.get("trap_host","localhost")
     

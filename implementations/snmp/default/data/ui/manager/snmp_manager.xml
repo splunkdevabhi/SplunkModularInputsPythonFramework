@@ -15,34 +15,34 @@
           <view name="create"/>
           <key name="exampleText">Name of this SNMP input</key>
         </element>
-        
-        <element name="attributes" type="fieldset">
-					<key name="legend">SNMP Attribute polling settings</key>
-					<view name="edit" />
-					<view name="create" />
-                                        <view name="list"/>
-					<elements>
-        <element name="destination" type="textfield" label="Destination">
-          <view name="list"/>
+        <element name="snmp_mode" type="select" label="SNMP Mode">
+					<onChange>
+
+						<key name="_action">showonly</key>
+						<group_set>
+							<group name="attributes" />
+							<group name="traps" />
+						</group_set>
+						<key name="attributes">attributes</key>
+						<key name="traps">traps</key>
+									
+					</onChange>
+					 <view name="list"/>
           <view name="edit"/>
           <view name="create"/>
-          <key name="exampleText">IP or hostname of the device you would like to query</key>
-        </element>
+          <key name="exampleText">The SNMP mode to run this stanza in</key>
+          <options>
+            <opt value="attributes" label="Poll Attributes"/> 
+            <opt value="traps" label="Listen For Traps"/>                 
+          </options>
+				</element>
+				
         <element name="ipv6" type="checkbox" label="IP Version 6">
           <view name="list"/>
           <view name="edit"/>
           <view name="create"/>
           <key name="exampleText">Whether or not this is an IP version 6 address. Defaults to false.</key>
         </element>
-        <element name="port" type="textfield" label="Port">
-          
-          <view name="edit"/>
-          <view name="create"/>
-          <key name="exampleText">The SNMP port. Defaults to 161</key>
-        </element>
-        
-        
-        
         <element name="snmp_version" type="select" label="SNMP Version">
 					<onChange>
 
@@ -118,10 +118,7 @@
 						<opt value="usmNoAuthProtocol" label="usmNoAuthProtocol" />
 					</options>
           </element>
-        
-        
-					
-				
+        				
         
         <element name="v3_privProtocol" type="select" label="SNMPv3 Encryption Key Protocol">
           
@@ -140,20 +137,14 @@
         
         </elements>
 				</element>
-				
-        <element name="mib_names" type="textfield" label="MIB Names">
-          
-          <view name="edit"/>
-          <view name="create"/>
-          <key name="exampleText">Comma delimited list of MIB names to be applied that you have deployed in the snmp_ta/bin/mibs directory as a Python egg ie: IF-MIB,DNS-SERVER-MIB,BRIDGE-MIB</key>
-        </element>
         
-        <element name="object_names" type="textfield" label="Object Names List">
-         
-          <view name="edit"/>
-          <view name="create"/>
-          <key name="exampleText">1 or more Objects Names , comma delimited , in either textual(iso.org.dod.internet.mgmt.mib-2.system.sysDescr.0) or numerical(1.3.6.1.2.1.1.3.0) format</key>
-        </element>
+        <element name="handler" type="fieldset">
+					<key name="legend">Custom Response Handling</key>
+					<view name="edit" />
+					<view name="create" />
+                                        <view name="list"/>
+					<elements>
+					
         <element name="response_handler" type="textfield" label="Response Handler">
 
 					<view name="edit" />
@@ -166,7 +157,47 @@
 					<view name="create" />
 					<key name="exampleText">Response Handler arguments string ,  key=value,key2=value2</key>
 				</element>
+			
+			</elements>
+		</element>
+				
+        <element name="attributes" type="fieldset">
+					<key name="legend">SNMP Attribute polling settings</key>
+					<view name="edit" />
+					<view name="create" />
+                                        <view name="list"/>
+					<elements>
+        <element name="destination" type="textfield" label="Destination">
+          <view name="list"/>
+          <view name="edit"/>
+          <view name="create"/>
+          <key name="exampleText">IP or hostname of the device you would like to query</key>
+        </element>
         
+        <element name="port" type="textfield" label="Port">
+          
+          <view name="edit"/>
+          <view name="create"/>
+          <key name="exampleText">The SNMP port. Defaults to 161</key>
+        </element>
+        
+        
+        <element name="object_names" type="textfield" label="Object Names List">
+         
+          <view name="edit"/>
+          <view name="create"/>
+          <key name="exampleText">1 or more Objects Names , comma delimited , in either textual(iso.org.dod.internet.mgmt.mib-2.system.sysDescr.0) or numerical(1.3.6.1.2.1.1.3.0) format</key>
+        </element>
+        
+				
+        <element name="mib_names" type="textfield" label="MIB Names">
+          
+          <view name="edit"/>
+          <view name="create"/>
+          <key name="exampleText">Comma delimited list of MIB names to be applied that you have deployed in the snmp_ta/bin/mibs directory as a Python egg ie: IF-MIB,DNS-SERVER-MIB,BRIDGE-MIB</key>
+        </element>
+        
+               
         <element name="snmpinterval" type="textfield" label="Interval">
           <view name="list"/>
           <view name="edit"/>
@@ -206,12 +237,6 @@
 					<view name="create" />
                                         <view name="list"/>
 					<elements>
-        <element name="listen_traps" type="checkbox" label="Listen for TRAP messages">
-          <view name="list"/>
-          <view name="edit"/>
-          <view name="create"/>
-          <key name="exampleText">Whether or not to listen for TRAP messages. Defaults to false</key>
-        </element>
         <element name="trap_host" type="textfield" label="TRAP listener host">
           
           <view name="edit"/>
