@@ -338,7 +338,7 @@ def do_run():
     response_handler_args_str=config.get("response_handler_args")
     if not response_handler_args_str is None:
         response_handler_args = dict((k.strip(), v.strip()) for k,v in 
-              (item.split('=') for item in response_handler_args_str.split(delimiter)))
+              (item.split('=') for item in response_handler_args_str.split(',')))
         
     response_handler=config.get("response_handler","DefaultResponseHandler")
     module = __import__("responsehandlers")
@@ -353,8 +353,8 @@ def do_run():
     communitystring=config.get("communitystring","public")   
     
     v3_securityName=config.get("v3_securityName","") 
-    v3_authKey=config.get("v3_authKey","") 
-    v3_privKey=config.get("v3_privKey","") 
+    v3_authKey=config.get("v3_authKey",None) 
+    v3_privKey=config.get("v3_privKey",None) 
     v3_authProtocol_str=config.get("v3_authProtocol","usmHMACMD5AuthProtocol") 
     v3_privProtocol_str=config.get("v3_privProtocol","usmDESPrivProtocol") 
     

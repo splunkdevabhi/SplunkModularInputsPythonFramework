@@ -1,3 +1,7 @@
+1.2.3
+-----
+Minor code fixes
+
 1.2.2
 -----
 Updated the manager UI
