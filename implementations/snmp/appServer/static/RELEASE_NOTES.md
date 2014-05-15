@@ -1,3 +1,7 @@
+1.2.4
+-----
+Fixed host field extraction for receiving v2 traps
+
 1.2.3
 -----
 Minor code fixes

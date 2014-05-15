@@ -9,3 +9,4 @@ def datetoday():
     today = datetime.date.today()
     return today.strftime('%Y-%m-%d')
 
+

@@ -281,9 +281,9 @@ def trapCallback(transportDispatcher, transportDomain, transportAddress, wholeMs
             trap_metadata =""
             server = ""
             try:
-                trap_metadata += 'notification_from_address = "%s" ' % (transportAddress)
-                trap_metadata += 'notification_from_domain = "%s" ' % (transportDomain)
-                server = "%s" % transportAddress
+                server = "%s" % transportAddress[0]
+                trap_metadata += 'notification_from_address = "%s" ' % (transportAddress[0])
+                trap_metadata += 'notification_from_port = "%s" ' % (transportAddress[1])
             except: # catch *all* exceptions
                 e = sys.exc_info()[1]
                 logging.error("Exception resolving source address/domain of the trap: %s" % str(e))
