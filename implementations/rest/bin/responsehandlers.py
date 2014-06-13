@@ -60,11 +60,33 @@ class FourSquareCheckinsEventHandler:
     def __call__(self, response_object,raw_response_output,response_type,req_args,endpoint):
         if response_type == "json":        
             output = json.loads(raw_response_output)
-            
+            last_created_at = 0
             for checkin in output["response"]["checkins"]["items"]:
-                print_xml_stream(json.dumps(checkin))   
+                print_xml_stream(json.dumps(checkin)) 
+                if "createdAt" in checkin:
+                    created_at = checkin["createdAt"]
+                    if created_at > last_created_at:
+                        last_created_at = created_at
+            if not "params" in req_args:
+                req_args["params"] = {}
+            
+            req_args["params"]["afterTimestamp"] = last_created_at
+                      
         else:
-            print_xml_stream(raw_response_output)  
+            print_xml_stream(raw_response_output) 
+            
+class ThingWorxTagHandler:
+    
+    def __init__(self,**args):
+        pass
+        
+    def __call__(self, response_object,raw_response_output,response_type,req_args,endpoint):
+        if response_type == "json":        
+            output = json.loads(raw_response_output)
+            for row in output["rows"]:
+                print_xml_stream(json.dumps(row))                      
+        else:
+            print_xml_stream(raw_response_output)   
           
 class BugsenseErrorsEventHandler:
     

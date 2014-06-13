@@ -137,6 +137,24 @@
         
         </elements>
 				</element>
+       
+       <element name="mibs" type="fieldset">
+					<key name="legend">Custom MIBs</key>
+					<view name="edit" />
+					<view name="create" />
+                                        <view name="list"/>
+					<elements>
+					 
+        <element name="mib_names" type="textfield" label="MIB Names">
+          
+          <view name="edit"/>
+          <view name="create"/>
+          <key name="exampleText">Comma delimited list of MIB names to be applied that you have deployed in the snmp_ta/bin/mibs directory as a Python egg ie: IF-MIB,DNS-SERVER-MIB,BRIDGE-MIB</key>
+        </element>
+        
+        </elements>
+		</element>
+		
         
         <element name="handler" type="fieldset">
 					<key name="legend">Custom Response Handling</key>
@@ -190,12 +208,7 @@
         </element>
         
 				
-        <element name="mib_names" type="textfield" label="MIB Names">
-          
-          <view name="edit"/>
-          <view name="create"/>
-          <key name="exampleText">Comma delimited list of MIB names to be applied that you have deployed in the snmp_ta/bin/mibs directory as a Python egg ie: IF-MIB,DNS-SERVER-MIB,BRIDGE-MIB</key>
-        </element>
+        
         
                
         <element name="snmpinterval" type="textfield" label="Interval">

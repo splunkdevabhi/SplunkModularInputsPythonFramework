@@ -1,3 +1,8 @@
+1.2.5
+-----
+
+Fixed Bug in UI that prevented declaring custom MIB Names when in listen traps mode
+
 1.2.4
 -----
 Fixed host field extraction for receiving v2 traps
