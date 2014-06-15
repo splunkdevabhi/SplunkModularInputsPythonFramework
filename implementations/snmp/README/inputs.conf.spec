@@ -3,7 +3,7 @@
 *attributes | traps
 snmp_mode = <value>
 
-*IP or hostname of the device you would like to query
+*IP or hostname of the device you would like to query, or a comma delimited list
 destination= <value>
 
 *Whether or not this is an IP version 6 address. Defaults to false.

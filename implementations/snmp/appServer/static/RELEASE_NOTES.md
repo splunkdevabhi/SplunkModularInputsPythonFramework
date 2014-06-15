@@ -1,3 +1,8 @@
+1.2.6
+-----
+
+In the destination field for polling attributes , you can now optionally specify a comma delimited list of hosts
+
 1.2.5
 -----
 

@@ -64,7 +64,7 @@ SCHEME = """<scheme>
             </arg>                
             <arg name="destination">
                 <title>Destination</title>
-                <description>IP or hostname of the device you would like to query</description>
+                <description>IP or hostname of the device you would like to query,or a comma delimited list</description>
                 <required_on_edit>false</required_on_edit>
                 <required_on_create>false</required_on_create>
             </arg>
@@ -319,7 +319,14 @@ def do_run():
     config = get_input_config() 
     #params
     snmp_mode=config.get("snmp_mode","")
-    destination=config.get("destination")
+    
+    destination_list=config.get("destination")
+    
+    if not destination_list is None:
+        destinations = map(str,destination_list.split(","))   
+        #trim any whitespace using a list comprehension
+        destinations = [x.strip(' ') for x in destinations]
+        
     port=int(config.get("port",161))
     snmpinterval=int(config.get("snmpinterval",60))   
     ipv6=int(config.get("ipv6",0))
@@ -328,7 +335,7 @@ def do_run():
         # update all the root StreamHandlers with a new formatter that includes the config information
         for h in logging.root.handlers:
             if isinstance(h, logging.StreamHandler):
-                h.setFormatter( logging.Formatter('%(levelname)s %(message)s snmp_stanza:{0} snmp_destination:{1} snmp_port:{2}'.format(config.get("name"), destination, port)) )
+                h.setFormatter( logging.Formatter('%(levelname)s %(message)s snmp_stanza:{0}'.format(config.get("name"))) )
 
     except: # catch *all* exceptions
         e = sys.exc_info()[1]
@@ -391,6 +398,8 @@ def do_run():
         #trim any whitespace using a list comprehension
         oid_args = [x.strip(' ') for x in oid_args]
     
+    
+    
     #GET BULK params
     do_bulk=int(config.get("do_bulk_get",0))
     split_bulk_output=int(config.get("split_bulk_output",0))
@@ -445,66 +454,91 @@ def do_run():
             trapThread = V3TrapThread(trap_port,trap_host,ipv6,v3_securityName,v3_authKey,v3_authProtocol,v3_privKey,v3_privProtocol)
             trapThread.start()  
       
-    if not (object_names is None) and not(destination is None):      
-        try:
-                       
-            if ipv6:
-                transport = cmdgen.Udp6TransportTarget((destination, port)) 
-            else:
-                transport = cmdgen.UdpTransportTarget((destination, port))  
-            
-            mp_model_val=1
-            
-            if snmp_version == "1":
-                mp_model_val=0
-                         
-            if snmp_version == "3":
-                security_object = cmdgen.UsmUserData( v3_securityName, authKey=v3_authKey, privKey=v3_privKey, authProtocol=v3_authProtocol, privProtocol=v3_privProtocol )
-            else:
-                security_object = cmdgen.CommunityData(communitystring,mpModel=mp_model_val)
-            
-            while True:  
-                if do_bulk and not snmp_version == "1":
-                    try:      
-                        errorIndication, errorStatus, errorIndex, varBindTable = cmdGen.bulkCmd(
-                            security_object,
-                            transport,
-                            non_repeaters, max_repetitions,
-                            *oid_args, lookupNames=True, lookupValues=True)
-                    except: # catch *all* exceptions
-                        e = sys.exc_info()[1]
-                        logging.error("Exception with bulkCmd to %s:%s: %s" % (destination, port, str(e)))
-                        time.sleep(float(snmpinterval))
-                        continue
-                else:
-                    try:
-                        errorIndication, errorStatus, errorIndex, varBinds = cmdGen.getCmd(
-                            security_object,
-                            transport,
-                            *oid_args, lookupNames=True, lookupValues=True)
-                    except: # catch *all* exceptions
-                        e = sys.exc_info()[1]
-                        logging.error("Exception with getCmd to %s:%s: %s" % (destination, port, str(e)))
-                        time.sleep(float(snmpinterval))
-                        continue
-
-                if errorIndication:
-                    logging.error(errorIndication)
-                elif errorStatus:
-                    logging.error(errorStatus)
-                else:
-                    if do_bulk:
-                        handle_output(varBindTable,destination,table=True,split_bulk_output=split_bulk_output) 
-                    else:  
-                        handle_output(varBinds,destination,table=False,split_bulk_output=split_bulk_output)  
-                            
-                time.sleep(float(snmpinterval))        
-            
-        except: # catch *all* exceptions
-            e = sys.exc_info()[1]
-            logging.error("Looks like an error: %s" % str(e))
-            sys.exit(1)
+    if not (object_names is None) and not(destination_list is None): 
         
+        mp_model_val=1
+        
+        if snmp_version == "1":
+            mp_model_val=0
+                         
+        if snmp_version == "3":
+            security_object = cmdgen.UsmUserData( v3_securityName, authKey=v3_authKey, privKey=v3_privKey, authProtocol=v3_authProtocol, privProtocol=v3_privProtocol )
+        else:
+            security_object = cmdgen.CommunityData(communitystring,mpModel=mp_model_val)
+            
+        if ipv6:
+            transport = cmdgen.Udp6TransportTarget((destination, port)) 
+        else:
+            transport = cmdgen.UdpTransportTarget((destination, port)) 
+                     
+        for destination in destinations:
+            apt = AttributePollerThread(destination,port,transport,snmp_version,do_bulk,security_object,snmpinterval,non_repeaters,max_repetitions,oid_args,split_bulk_output) 
+            apt.start()        
+
+class AttributePollerThread(threading.Thread):
+    
+     def __init__(self,destination,port,transport,snmp_version,do_bulk,security_object,snmpinterval,non_repeaters,max_repetitions,oid_args,split_bulk_output):
+         threading.Thread.__init__(self)
+         self.destination=destination
+         self.port=port
+         self.transport=transport
+         self.snmp_version=snmp_version
+         self.do_bulk=do_bulk
+         self.security_object=security_object
+         self.snmpinterval=snmpinterval
+         self.non_repeaters=non_repeaters
+         self.max_repetitions=max_repetitions
+         self.oid_args=oid_args
+         self.split_bulk_output=split_bulk_output
+    
+     def run(self):
+         
+         try:
+                                       
+             while True:  
+                 if do_bulk and not snmp_version == "1":
+                     try:      
+                         errorIndication, errorStatus, errorIndex, varBindTable = cmdGen.bulkCmd(
+                             security_object,
+                             transport,
+                             non_repeaters, max_repetitions,
+                             *oid_args, lookupNames=True, lookupValues=True)
+                     except: # catch *all* exceptions
+                         e = sys.exc_info()[1]
+                         logging.error("Exception with bulkCmd to %s:%s: %s" % (destination, port, str(e)))
+                         time.sleep(float(snmpinterval))
+                         continue
+                 else:
+                     try:
+                         errorIndication, errorStatus, errorIndex, varBinds = cmdGen.getCmd(
+                             security_object,
+                             transport,
+                             *oid_args, lookupNames=True, lookupValues=True)
+                     except: # catch *all* exceptions
+                         e = sys.exc_info()[1]
+                         logging.error("Exception with getCmd to %s:%s: %s" % (destination, port, str(e)))
+                         time.sleep(float(snmpinterval))
+                         continue
+    
+                 if errorIndication:
+                     logging.error(errorIndication)
+                 elif errorStatus:
+                     logging.error(errorStatus)
+                 else:
+                     if do_bulk:
+                         handle_output(varBindTable,destination,table=True,split_bulk_output=split_bulk_output) 
+                     else:  
+                         handle_output(varBinds,destination,table=False,split_bulk_output=split_bulk_output)  
+                            
+                 time.sleep(float(snmpinterval))        
+            
+         except: # catch *all* exceptions
+             e = sys.exc_info()[1]
+             logging.error("Looks like an error: %s" % str(e))
+             sys.exit(1)
+         
+         
+                 
 class TrapThread(threading.Thread):
     
      def __init__(self,port,host,ipv6):
@@ -536,6 +570,8 @@ class TrapThread(threading.Thread):
             logging.error("Failed to register transport and run dispatcher: %s" % str(e))
             sys.exit(1)
 
+
+         
 class V3TrapThread(threading.Thread):
     
      def __init__(self,port,host,ipv6,user,auth_key,auth_proto,priv_key,priv_proto):

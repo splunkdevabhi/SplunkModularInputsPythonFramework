@@ -189,7 +189,7 @@
           <view name="list"/>
           <view name="edit"/>
           <view name="create"/>
-          <key name="exampleText">IP or hostname of the device you would like to query</key>
+          <key name="exampleText">IP or hostname of the device you would like to query, or a comma delimited list</key>
         </element>
         
         <element name="port" type="textfield" label="Port">
