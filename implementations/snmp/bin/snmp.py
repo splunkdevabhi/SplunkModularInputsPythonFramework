@@ -456,28 +456,28 @@ def do_run():
       
     if not (object_names is None) and not(destination_list is None): 
         
-        mp_model_val=1
-        
-        if snmp_version == "1":
-            mp_model_val=0
-                         
-        if snmp_version == "3":
-            security_object = cmdgen.UsmUserData( v3_securityName, authKey=v3_authKey, privKey=v3_privKey, authProtocol=v3_authProtocol, privProtocol=v3_privProtocol )
-        else:
-            security_object = cmdgen.CommunityData(communitystring,mpModel=mp_model_val)
-            
-        if ipv6:
-            transport = cmdgen.Udp6TransportTarget((destination, port)) 
-        else:
-            transport = cmdgen.UdpTransportTarget((destination, port)) 
+        mp_model_val=1  
                      
         for destination in destinations:
-            apt = AttributePollerThread(destination,port,transport,snmp_version,do_bulk,security_object,snmpinterval,non_repeaters,max_repetitions,oid_args,split_bulk_output) 
+            if snmp_version == "1":
+                mp_model_val=0
+                         
+            if snmp_version == "3":
+                security_object = cmdgen.UsmUserData( v3_securityName, authKey=v3_authKey, privKey=v3_privKey, authProtocol=v3_authProtocol, privProtocol=v3_privProtocol )
+            else:
+                security_object = cmdgen.CommunityData(communitystring,mpModel=mp_model_val)
+            
+            if ipv6:
+                transport = cmdgen.Udp6TransportTarget((destination, port)) 
+            else:
+                transport = cmdgen.UdpTransportTarget((destination, port)) 
+            
+            apt = AttributePollerThread(cmdGen,destination,port,transport,snmp_version,do_bulk,security_object,snmpinterval,non_repeaters,max_repetitions,oid_args,split_bulk_output) 
             apt.start()        
 
 class AttributePollerThread(threading.Thread):
     
-     def __init__(self,destination,port,transport,snmp_version,do_bulk,security_object,snmpinterval,non_repeaters,max_repetitions,oid_args,split_bulk_output):
+     def __init__(self,cmdGen,destination,port,transport,snmp_version,do_bulk,security_object,snmpinterval,non_repeaters,max_repetitions,oid_args,split_bulk_output):
          threading.Thread.__init__(self)
          self.destination=destination
          self.port=port
@@ -490,34 +490,35 @@ class AttributePollerThread(threading.Thread):
          self.max_repetitions=max_repetitions
          self.oid_args=oid_args
          self.split_bulk_output=split_bulk_output
+         self.cmdGen=cmdGen
     
      def run(self):
          
          try:
                                        
              while True:  
-                 if do_bulk and not snmp_version == "1":
+                 if self.do_bulk and not self.snmp_version == "1":
                      try:      
-                         errorIndication, errorStatus, errorIndex, varBindTable = cmdGen.bulkCmd(
-                             security_object,
-                             transport,
-                             non_repeaters, max_repetitions,
-                             *oid_args, lookupNames=True, lookupValues=True)
+                         errorIndication, errorStatus, errorIndex, varBindTable = self.cmdGen.bulkCmd(
+                             self.security_object,
+                             self.transport,
+                             self.non_repeaters, self.max_repetitions,
+                             *self.oid_args, lookupNames=True, lookupValues=True)
                      except: # catch *all* exceptions
                          e = sys.exc_info()[1]
-                         logging.error("Exception with bulkCmd to %s:%s: %s" % (destination, port, str(e)))
-                         time.sleep(float(snmpinterval))
+                         logging.error("Exception with bulkCmd to %s:%s: %s" % (self.destination, self.port, str(e)))
+                         time.sleep(float(self.snmpinterval))
                          continue
                  else:
                      try:
-                         errorIndication, errorStatus, errorIndex, varBinds = cmdGen.getCmd(
-                             security_object,
-                             transport,
-                             *oid_args, lookupNames=True, lookupValues=True)
+                         errorIndication, errorStatus, errorIndex, varBinds = self.cmdGen.getCmd(
+                             self.security_object,
+                             self.transport,
+                             *self.oid_args, lookupNames=True, lookupValues=True)
                      except: # catch *all* exceptions
                          e = sys.exc_info()[1]
-                         logging.error("Exception with getCmd to %s:%s: %s" % (destination, port, str(e)))
-                         time.sleep(float(snmpinterval))
+                         logging.error("Exception with getCmd to %s:%s: %s" % (self.destination, self.port, str(e)))
+                         time.sleep(float(self.snmpinterval))
                          continue
     
                  if errorIndication:
@@ -525,12 +526,12 @@ class AttributePollerThread(threading.Thread):
                  elif errorStatus:
                      logging.error(errorStatus)
                  else:
-                     if do_bulk:
-                         handle_output(varBindTable,destination,table=True,split_bulk_output=split_bulk_output) 
+                     if self.do_bulk:
+                         handle_output(varBindTable,self.destination,table=True,split_bulk_output=self.split_bulk_output) 
                      else:  
-                         handle_output(varBinds,destination,table=False,split_bulk_output=split_bulk_output)  
+                         handle_output(varBinds,self.destination,table=False,split_bulk_output=self.split_bulk_output)  
                             
-                 time.sleep(float(snmpinterval))        
+                 time.sleep(float(self.snmpinterval))        
             
          except: # catch *all* exceptions
              e = sys.exc_info()[1]
