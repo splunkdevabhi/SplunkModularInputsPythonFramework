@@ -63,10 +63,10 @@ def do_run():
     config = get_input_config()  
     
     http_port=config.get("http_port")
-    http_bind_address=config.get("http_bind_address")
+    http_bind_address=config.get("http_bind_address",'')
      
     try :
-        reactor.listenTCP(http_port, server.Site(CepaResource()),interface=http_bind_address)
+        reactor.listenTCP(int(http_port), server.Site(CepaResource()),interface=http_bind_address)
         reactor.run()
         
     except: # catch *all* exceptions
@@ -76,6 +76,7 @@ def do_run():
 
 class CepaResource(resource.Resource):
     
+    isLeaf = True
     
     def _ok_response(self, message,request):
         
@@ -84,7 +85,6 @@ class CepaResource(resource.Resource):
         request.setHeader('Content-Length', len(bytebuf))
         request.setHeader('Content-Type', 'text/xml; charset=utf-16')
         request.write(bytebuf)
-        request.finish()
  
     def render_GET(self,request):
         logging.error("GET method for path %s is not supported, docs specify PUT path" % request.path)
@@ -124,14 +124,6 @@ class CepaResource(resource.Resource):
     def render_POST(self,request):
         logging.error("POST method for path %s is not supported, docs specify PUT path" % request.path)  
 
-    def registerRequest(put_request):
-        return put_request == '<RegisterRequest />'
-    
-    def heartbeatRequest(put_request):
-        return put_request == '<HeartBeatRequest />'
-        
-    def checkeventRequest(put_request):
-        return put_request.startsWith('<CheckEventRequest>')
 
 # prints validation error data to be consumed by Splunk
 def print_validation_error(s):

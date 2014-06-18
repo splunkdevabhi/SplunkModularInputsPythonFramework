@@ -30,8 +30,8 @@
           <view name="list"/>
           <key name="exampleText">Host address to bind to for this HTTP server</key>
         </element>
-
-	
+</elements>
+</element>	
 
     <element name="sourcetypeFields" type="fieldset">
                       <view name="list"/>
@@ -95,7 +95,7 @@
                       </elements>
                       <key name="legend">Source type</key>
                       <key name="helpText">Set sourcetype field for all events from this source.</key>
-                    </element>
+  </element>
 
    
 	<element name="spl-ctrl_EnableAdvanced" type="checkbox" label="More settings" class="spl-mgr-advanced-switch">
@@ -158,3 +158,4 @@
 
   </elements>
 </endpoint>
+

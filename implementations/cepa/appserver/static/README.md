@@ -2,25 +2,45 @@
 
 ## Overview
 
-This is a Splunk modular input add-on for EMC CEPA API. When enabled it establishes an HTTP server and listens for events via HTTP PUT requests that are sent from the EMC Common Event Enabler (CEE) Framework client.
+This is a Splunk Modular Input add-on for EMC CEPA API. When enabled it establishes a HTTP server and listens for events via HTTP PUT requests that are sent from the EMC Common Event Enabler (CEE) Framework client.
 
-## Python Twisted
-
-This Moduar Input depends on the Python Twisted package.
-Please download it and build it for your platform : https://twistedmatrix.com
-
-## Dependencies
-
-* Splunk 5.0+
-* Supported on Windows, Linux, MacOS, Solaris, FreeBSD, HP-UX, AIX
-
-## Setup
+## Initial Setup
 
 * Untar the release to your $SPLUNK_HOME/etc/apps directory
-* Restart Splunk
+* Do not restart yet.Perform the next step regarding Python dependencies and then restart.
+
+## Python Dependencies that must be installed
+
+This Modular Input depends on a few Python packages that are not included in Splunk's Python Runtime and need to
+be built for the platform that you are deploying this Modular Input on.
+
+#Twisted 14.0
+
+The Twisted Web package provides for implementing a HTTP server that is asynchronous and event driven which should
+scale optimally for high throughput environments.
+
+* Download the Twisted tarball from here : https://pypi.python.org/packages/source/T/Twisted/Twisted-14.0.0.tar.bz2
+* Untar it , browse to the untarred directory and run : python setup.py install
+* Browse to "site-packages" and copy the "twisted" directory to $SPLUNK_HOME/etc/apps/cepa_ta/bin
+
+#Zope 4.1.1
+
+Zope is depended on by Twisted
+
+* Download the Zope tarball from here : https://pypi.python.org/packages/source/z/zope.interface/zope.interface-4.1.1.tar.gz
+* Untar it , browse to the untarred directory and run : python setup.py install
+* Browse to "site-packages" and copy the "zope" directory to $SPLUNK_HOME/etc/apps/cepa_ta/bin
+
+#PyOpenSSL 0.14
+
+Splunk's version of PyOpenSSL is 0.8 , however a minimum version of 0.12 is required by Twisted
+
+* Download the Zope tarball from here : https://pypi.python.org/packages/source/p/pyOpenSSL/pyOpenSSL-0.14.tar.gz
+* Untar it , browse to the untarred directory and run : python setup.py install
+* Browse to "site-packages" and copy the "OpenSSL" directory to $SPLUNK_HOME/etc/apps/cepa_ta/bin
 
 
-# CEE Framework Setup
+## CEE Framework Setup
 
 The CEE framework runs on Windows and Linux and can be downloaded from the EMC website.
 
