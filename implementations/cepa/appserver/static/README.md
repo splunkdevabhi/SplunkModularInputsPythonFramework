@@ -2,16 +2,16 @@
 
 ## Overview
 
-This is a Splunk Modular Input add-on for EMC CEPA API. When enabled it establishes a HTTP server and listens for events via HTTP PUT requests that are sent from the EMC Common Event Enabler (CEE) Framework client.
+This is a Splunk Modular Input Add-On for the EMC CEPA API. When enabled it establishes a HTTP server and listens for events via HTTP PUT requests that are sent from the EMC Common Event Enabler (CEE) Framework client.
 
 ## Initial Setup
 
 * Untar the release to your $SPLUNK_HOME/etc/apps directory
-* Do not restart yet.Perform the next step regarding Python dependencies and then restart.
+* Do not restart Splunk yet.Perform the next step regarding Python dependencies and then restart Splunk.
 
 ## Python Dependencies that must be installed
 
-This Modular Input depends on a few Python packages that are not included in Splunk's Python Runtime and need to
+This Modular Input depends on a few Python packages that are not included in Splunk's Python runtime and need to
 be built for the platform that you are deploying this Modular Input on.
 
 ### Twisted 14.0
@@ -51,29 +51,30 @@ heartbeat requests, and receive the check_event_requests which will be indexed i
 
 Example config of emc_cee_config.xml:
 
+```
 <Configuration>
         <Enabled>1</Enabled>
         <EndPoint>Splunk@http://YOUR_CEE_SERVER:PORT</EndPoint>
 </Configuration>
+```
 
 Example config of inputs.conf for the Modular Input where the CEPA API and a Splunk Forwarder or Indexer is running on 10.0.0.4:
 
+```
 [cepa://isilon]
 host = Isilon
 http_bind_address = 10.0.0.4
 http_port = 12229
 index = emc
 sourcetype = CEPA
-
+```
 
 Isilon OneFS:
 
 1.  Login to OneFS
 2.  Select Cluster Management
 3.  Select Auditing
-4.  Under Event Forwarding add the server where CEPA is installed.
-
-http://10.0.0.4:12228/CEE
+4.  Under Event Forwarding add the server where CEPA is installed : http://10.0.0.4:12228/CEE
 
 ## Logging
 
