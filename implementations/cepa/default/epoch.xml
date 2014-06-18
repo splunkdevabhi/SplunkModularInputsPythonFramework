@@ -1,0 +1,10 @@
+<datetime>
+         <define name="_hexepoch" extract="hexepoch">
+           <text><![CDATA[0x([A-Fa-f0-9]{8})]]></text>
+         </define>
+         <timePatterns>
+           <use name="_hexepoch"/>
+         </timePatterns>
+         <datePatterns>
+         </datePatterns>
+</datetime>

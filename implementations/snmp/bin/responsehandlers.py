@@ -1,6 +1,9 @@
 #add your custom response handler class to this module
-import sys,json,csv,io
+import sys,json,csv,io,logging
 from pysnmp.entity.rfc3413 import mibvar
+
+# Initialize the root logger with a StreamHandler and a format message:
+logging.basicConfig(level=logging.ERROR, format='%(levelname)s %(message)s')
 
 #the default handler , does nothing , just passes the raw output directly to STDOUT
 class DefaultResponseHandler:
@@ -19,12 +22,14 @@ class DefaultResponseHandler:
                     splunkevent +='%s::%s.%s =  ' % (modName, symName,'.'.join([ v.prettyPrint() for v in indices]))      
                 except: # catch *all* exceptions
                     e = sys.exc_info()[1]
+                    logging.error("Exception resolving MIB name in the caught trap: %s" % str(e))
                     splunkevent +='%s =  ' % (oid)
                 try:
                     decodedVal = mibvar.cloneFromMibValue(mibView,modName,symName,val)
                     splunkevent +='%s ' % (decodedVal.prettyPrint())      
                 except: # catch *all* exceptions
                     e = sys.exc_info()[1]
+                    logging.error("Exception resolving MIB value in the caught trap: %s" % str(e))
                     splunkevent +='%s ' % (val.prettyPrint()) 
             splunkevent = trap_metadata + splunkevent       
             print_xml_single_instance_mode(destination, splunkevent)

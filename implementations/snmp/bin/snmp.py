@@ -267,6 +267,9 @@ def v3trapCallback(snmpEngine,stateReference,contextEngineId, contextName,varBin
 def trapCallback(transportDispatcher, transportDomain, transportAddress, wholeMsg):
     
     try:
+        if not wholeMsg:
+            logging.error('Receiving trap , error processing the inital message in the trapCallback handler')
+            
         while wholeMsg:
             msgVer = int(api.decodeMessageVersion(wholeMsg))
             if msgVer in api.protoModules:
