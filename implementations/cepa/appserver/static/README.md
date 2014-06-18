@@ -1,4 +1,4 @@
-## Splunk CEPA Modular Input v1.4
+# Splunk CEPA Modular Input v1.4
 
 ## Overview
 
@@ -14,7 +14,7 @@ This is a Splunk Modular Input add-on for EMC CEPA API. When enabled it establis
 This Modular Input depends on a few Python packages that are not included in Splunk's Python Runtime and need to
 be built for the platform that you are deploying this Modular Input on.
 
-#Twisted 14.0
+### Twisted 14.0
 
 The Twisted Web package provides for implementing a HTTP server that is asynchronous and event driven which should
 scale optimally for high throughput environments.
@@ -23,7 +23,7 @@ scale optimally for high throughput environments.
 * Untar it , browse to the untarred directory and run : python setup.py install
 * Browse to "site-packages" and copy the "twisted" directory to $SPLUNK_HOME/etc/apps/cepa_ta/bin
 
-#Zope 4.1.1
+### Zope 4.1.1
 
 Zope is depended on by Twisted
 
@@ -31,7 +31,7 @@ Zope is depended on by Twisted
 * Untar it , browse to the untarred directory and run : python setup.py install
 * Browse to "site-packages" and copy the "zope" directory to $SPLUNK_HOME/etc/apps/cepa_ta/bin
 
-#PyOpenSSL 0.14
+### PyOpenSSL 0.14
 
 Splunk's version of PyOpenSSL is 0.8 , however a minimum version of 0.12 is required by Twisted
 
