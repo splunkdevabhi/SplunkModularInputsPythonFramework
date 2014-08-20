@@ -10,6 +10,7 @@ import os,sys,logging
 import xml.dom.minidom, xml.sax.saxutils
 import time
 import threading
+import socket
 
 SPLUNK_HOME = os.environ.get("SPLUNK_HOME")
 
@@ -176,6 +177,12 @@ SCHEME = """<scheme>
                 <required_on_edit>false</required_on_edit>
                 <required_on_create>false</required_on_create>
             </arg>
+	    <arg name="trap_rdns">
+		<title>TRAP Origin Reverse DNS Lookup</title>
+		<description>TRAP Generating Host reverse DNS lookup. Forces host field to the DNS lookup if available insted of IP address. Defaults to false. Be aware may cause large DNS lookup volume</description>
+		<required_on_edit>false</required_on_edit>
+		<required_on_create>false</required_on_create>
+	    </arg>
             <arg name="mib_names">
                 <title>MIB Names</title>
                 <description>Comma delimited list of MIB names to be applied that you have deployed in the snmp_ta/bin/mibs directory as a Python egg ie: IF-MIB,DNS-SERVER-MIB,BRIDGE-MIB</description>
@@ -236,7 +243,18 @@ def do_validate():
         logging.error("Exception getting config: %s" % str(e))
         sys.exit(1)
         raise   
-    
+
+# Given an ip, return the host. Return the ip if no lookup found or if lookup disabled by configuration
+def rlookup(ip):
+
+     if trap_rdns:
+        try:
+            hostname, aliaslist, ipaddrlist = socket.gethostbyaddr(ip)
+            return hostname
+        except:
+            return ip 
+     else:
+        return ip
     
 def v3trapCallback(snmpEngine,stateReference,contextEngineId, contextName,varBinds,cbCtx):
     try:
@@ -244,7 +262,7 @@ def v3trapCallback(snmpEngine,stateReference,contextEngineId, contextName,varBin
         server = ""
         ( transportDomain,transportAddress ) = snmpEngine.msgAndPduDsp.getTransportInfo(stateReference)
         try:
-            server = "%s" % transportAddress
+            server = "%s" % rlookup(transportAddress) 
             trap_metadata += 'notification_from_address = "%s" ' % (transportAddress)
             trap_metadata += 'notification_from_domain = "%s" ' % (transportDomain)                              
         except: # catch *all* exceptions
@@ -284,7 +302,7 @@ def trapCallback(transportDispatcher, transportDomain, transportAddress, wholeMs
             trap_metadata =""
             server = ""
             try:
-                server = "%s" % transportAddress[0]
+                server = "%s" % rlookup((transportAddress[0])) 
                 trap_metadata += 'notification_from_address = "%s" ' % (transportAddress[0])
                 trap_metadata += 'notification_from_port = "%s" ' % (transportAddress[1])
             except: # catch *all* exceptions
@@ -417,7 +435,10 @@ def do_run():
         
     trap_port=int(config.get("trap_port",162))
     trap_host=config.get("trap_host","localhost")
-    
+   
+    global trap_rdns
+    trap_rdns=int(config.get("trap_rdns",0))
+ 
     #MIBs to load
     mib_names=config.get("mib_names")
     mib_names_args=None
