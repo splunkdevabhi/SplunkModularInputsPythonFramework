@@ -521,7 +521,8 @@ def replaceTokens(raw_string):
     try:    
         substitution_tokens = re.findall("\$(?:\w+)\$",raw_string)
         for token in substitution_tokens:
-            return raw_string.replace(token,getattr(tokens,token[1:-1])())
+            raw_string =  raw_string.replace(token,getattr(tokens,token[1:-1])())
+        return raw_string    
     except: 
         e = sys.exc_info()[1]
         logging.error("Looks like an error substituting tokens: %s" % str(e))  
