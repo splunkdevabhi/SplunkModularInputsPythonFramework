@@ -74,6 +74,7 @@ class JSONFormatterResponseHandler:
                 values[name.prettyPrint()] = val.prettyPrint()
             print_xml_single_instance_mode(destination, json.dumps(values))      
  
+ 
 
 # prints XML stream
 def print_xml_single_instance_mode(server, event):

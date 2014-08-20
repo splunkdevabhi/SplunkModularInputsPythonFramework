@@ -287,7 +287,7 @@ def do_run():
    
     #params
     
-    endpoint=config.get("endpoint")
+    original_endpoint=config.get("endpoint")
     
     http_method=config.get("http_method","GET")
     request_payload=config.get("request_payload")
@@ -453,14 +453,8 @@ def do_run():
             else:
                 req_args_data_current = ""
             
-            try:    
-                substitution_tokens = re.findall("\$(?:\w+)\$",endpoint)
-                for token in substitution_tokens:
-                    endpoint = endpoint.replace(token,getattr(tokens,token[1:-1])())
-            except: 
-                e = sys.exc_info()[1]
-                logging.error("Looks like an error substituting tokens in the endpoint url: %s" % str(e))  
-         
+            #token replacement
+            endpoint = replaceTokens(original_endpoint)
          
             try:
                 if oauth2:
@@ -521,7 +515,18 @@ def do_run():
     except RuntimeError,e:
         logging.error("Looks like an error: %s" % str(e))
         sys.exit(2) 
-     
+
+def replaceTokens(raw_string):
+
+    try:    
+        substitution_tokens = re.findall("\$(?:\w+)\$",raw_string)
+        for token in substitution_tokens:
+            return raw_string.replace(token,getattr(tokens,token[1:-1])())
+    except: 
+        e = sys.exc_info()[1]
+        logging.error("Looks like an error substituting tokens: %s" % str(e))  
+               
+         
 def checkParamUpdated(cached,current,rest_name):
     
     if not (cached == current):

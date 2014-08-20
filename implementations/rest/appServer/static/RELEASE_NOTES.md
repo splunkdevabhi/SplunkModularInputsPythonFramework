@@ -1,3 +1,9 @@
+1.3.5
+-----
+
+Ensure that token substitution in the endpoint URL is dynamically applied for each
+HTTP request
+
 1.3.4
 -----
 
