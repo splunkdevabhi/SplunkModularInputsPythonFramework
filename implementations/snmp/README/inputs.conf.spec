@@ -18,6 +18,9 @@ snmp_version= <value>
 *1 or more Object Names , comma delimited , in either textual(iso.org.dod.internet.mgmt.mib-2.system.sysDescr.0) or numerical(1.3.6.1.2.1.1.3.0) format.
 object_names= <value>
 
+*Whether or not to perform an SNMP GET NEXT operation.This will retrieve all the object attributes in the sub tree of the declared OIDs.Be aware of potential performance issues , http://www.net-snmp.org/wiki/index.php/GETNEXT. Defaults to false.
+do_get_subtree= <value>
+
 *Whether or not to perform an SNMP GET BULK operation.This will retrieve all the object attributes in the sub tree of the declared OIDs.Be aware of potential performance issues , http://www.net-snmp.org/wiki/index.php/GETBULK. Defaults to false.
 do_bulk_get= <value>
 
