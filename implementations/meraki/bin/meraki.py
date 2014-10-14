@@ -59,6 +59,12 @@ SCHEME = """<scheme>
                 <required_on_edit>false</required_on_edit>
                 <required_on_create>true</required_on_create>
             </arg>
+            <arg name="api_version">
+                <title>CMX API Version</title>
+                <description>CMX API Version</description>
+                <required_on_edit>false</required_on_edit>
+                <required_on_create>true</required_on_create>
+            </arg>
             
         </args>
     </endpoint>
@@ -73,6 +79,7 @@ def do_validate():
 def do_run():
     global meraki_validator
     global meraki_secret
+    global api_version
 
     config = get_input_config()  
     
@@ -80,7 +87,8 @@ def do_run():
     http_bind_address=config.get("http_bind_address",'')
     meraki_validator=config.get("meraki_validator")
     meraki_secret=config.get("meraki_secret")
-     
+    api_version=config.get("api_version","1.0")
+    
     try :
         server_address = (http_bind_address, int(http_port))
         httpd = HTTPServer(server_address, MerakiHandler)
@@ -106,7 +114,7 @@ class MerakiHandler(BaseHTTPRequestHandler):
                 e = sys.exc_info()[1]
                 logging.error("Exception handling GET request for /events")
         else :    
-            logging.error("POST path %s is not recognised" % self.path ) 
+            logging.error("GET path %s is not recognised" % self.path ) 
  
     def do_POST(self):
         if self.path == '/events' :
@@ -114,15 +122,26 @@ class MerakiHandler(BaseHTTPRequestHandler):
                 content_len = int(self.headers.getheader('content-length'))
                 post_body = self.rfile.read(content_len)
                 post_body_decoded = urllib.unquote(post_body).decode("utf8")
-                post_params = dict((k.strip(), v.strip()) for k,v in (item.split('=') for item in post_body_decoded.split('&')))
-                content = json.loads(post_params["data"])
-                request_secret = content["secret"]
-                if request_secret == meraki_secret :
-                    for probing_event in content["probing"]:
-                        print_xml_stream(json.dumps(probing_event))
-                        sys.stdout.flush()
-                else :    
-                   logging.error("Request Secret %s does not match" % request_secret )
+                if api_version == '2.0':
+                    content = json.loads(post_body_decoded)
+                    request_secret = content["secret"]
+                    if request_secret == meraki_secret :
+                        for observation in content["data"]["observations"]:
+                            observation["apMac"] = content["data"]["apMac"]
+                            print_xml_stream(json.dumps(observation))
+                            sys.stdout.flush()
+                    else :    
+                       logging.error("Request Secret %s does not match" % request_secret )        
+                elif api_version == '1.0':        
+                    post_params = dict((k.strip(), v.strip()) for k,v in (item.split('=') for item in post_body_decoded.split('&')))
+                    content = json.loads(post_params["data"])
+                    request_secret = content["secret"]
+                    if request_secret == meraki_secret :
+                        for probing_event in content["probing"]:
+                            print_xml_stream(json.dumps(probing_event))
+                            sys.stdout.flush()
+                    else :    
+                       logging.error("Request Secret %s does not match" % request_secret )
             except: # catch *all* exceptions
                 e = sys.exc_info()[1]
                 logging.error("Exception handling POST request for /events.Body Content : %s" % post_body)

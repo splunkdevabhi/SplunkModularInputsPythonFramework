@@ -44,6 +44,19 @@
           <view name="list"/>
           <key name="exampleText">Meraki Client Validator</key>
         </element>
+        <element name="api_version" type="select" label="CMX API Version">
+          
+          <view name="edit"/>
+          <view name="create"/>
+          <view name="list"/>
+          <key name="exampleText">Defaults to version 1.0</key>
+          <options>
+                        <opt value="1.0" label="1.0" />
+						<opt value="2.0" label="2.0" />
+						
+                                               
+					</options>
+        </element>
         
       </elements>
     </element>
