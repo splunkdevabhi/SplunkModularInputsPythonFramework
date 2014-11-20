@@ -6,7 +6,7 @@ All Rights Reserved
 
 '''
 
-import sys,logging,json
+import sys,logging,json,signal
 import xml.dom.minidom, xml.sax.saxutils
 from BaseHTTPServer import BaseHTTPRequestHandler, HTTPServer
 import SocketServer
@@ -92,10 +92,12 @@ def do_run():
     try :
         server_address = (http_bind_address, int(http_port))
         httpd = HTTPServer(server_address, MerakiHandler)
-        httpd.serve_forever()
+        httpd.serve_forever()   
     except: # catch *all* exceptions
+        httpd.server_close()
         e = sys.exc_info()[1]
-        logging.error("Error running the Meraki HTTP Server: %s" % str(e))  
+        logging.error("Error running the Meraki HTTP Server: %s" % str(e))
+        sys.exit(0)  
  
 class MerakiHandler(BaseHTTPRequestHandler):
 
@@ -250,6 +252,13 @@ def get_validation_config():
                 val_data[name] = param.firstChild.data
 
     return val_data
+
+def signal_handler(signal, frame):
+        #exit this script
+        sys.exit(0)
+
+        
+signal.signal(signal.SIGINT, signal_handler)
 
 if __name__ == '__main__':
       

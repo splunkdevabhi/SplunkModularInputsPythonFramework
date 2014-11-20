@@ -86,7 +86,32 @@ class ThingWorxTagHandler:
             for row in output["rows"]:
                 print_xml_stream(json.dumps(row))                      
         else:
-            print_xml_stream(raw_response_output)   
+            print_xml_stream(raw_response_output) 
+            
+class FireEyeEventHandler:
+    
+    def __init__(self,**args):
+        pass
+        
+    def __call__(self, response_object,raw_response_output,response_type,req_args,endpoint):
+        if response_type == "json":        
+            output = json.loads(response_object.content)
+            last_display_id = -1
+            for alert in output["alerts"]:
+                print_xml_stream(json.dumps(alert))  
+                if "displayId" in alert:
+                    display_id = alert["displayId"]
+                    if display_id > last_display_id:
+                        last_display_id = display_id
+            if not "params" in req_args:
+                req_args["params"] = {}
+            
+            if last_display_id > -1:
+                req_args["params"]["offset"] = last_display_id
+
+        else:
+            print_xml_stream(raw_response_output) 
+              
           
 class BugsenseErrorsEventHandler:
     
