@@ -63,6 +63,9 @@ trap_port= <value>
 *The trap host. Defaults to localhost
 trap_host= <value>
 
+*Whether or not to perform reverse DNS on Trap Sending Host IP. Defaults to false 
+trap_rdns = <value>
+
 *List of MIB names to be loaded and applied to your objects
 mib_names = <value>
 

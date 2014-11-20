@@ -268,6 +268,12 @@
           <view name="create"/>
           <key name="exampleText">TRAP listener port. Defaults to 162. Ensure that you have the necessary OS user permissions for port values 0-1024</key>
         </element>
+        <element name="trap_rdns" type="checkbox" label="Reverse DNS lookup of trap sources.">
+          <view name="list"/>
+          <view name="edit"/>
+          <view name="create"/>
+          <key name="exampleText">TRAP Generating Host reverse DNS lookup. Forces host field to the DNS lookup if available insted of IP address. Defaults to false. Be aware may cause large DNS lookup volume</key>
+        </element>
          </elements>
     </element>
         
