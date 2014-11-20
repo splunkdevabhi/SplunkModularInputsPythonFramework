@@ -223,6 +223,12 @@
           <view name="create"/>
           <key name="exampleText">Whether or not to perform an SNMP GET BULK operation.This will retrieve all the object attributes in the sub tree of the declared OIDs.Be aware of potential performance issues , http://www.net-snmp.org/wiki/index.php/GETBULK. Defaults to false.</key>
         </element>
+        <element name="do_get_subtree" type="checkbox" label="Perform GET SUBTREE">
+          <view name="list"/>
+          <view name="edit"/>
+          <view name="create"/>
+          <key name="exampleText">Whether or not to perform an SNMP GET SUBTREE operation.This will retrieve all the object attributes in the sub tree of the declared OIDs.Be aware of potential performance issues , http://www.net-snmp.org/wiki/index.php/GETNEXT. Defaults to false.</key>
+        </element>
         <element name="split_bulk_output" type="checkbox" label="Split Bulk Results">
           <view name="edit"/>
           <view name="create"/>

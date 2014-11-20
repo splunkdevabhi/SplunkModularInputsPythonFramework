@@ -140,6 +140,12 @@ SCHEME = """<scheme>
                 <required_on_edit>false</required_on_edit>
                 <required_on_create>false</required_on_create>
             </arg>
+            <arg name="do_get_subtree">
+                <title>Perform GET SUBTREE</title>
+                <description>Whether or not to perform an SNMP GET SUBTREE operation.This will retrieve all the object attributes in the sub tree of the declared OIDs.Be aware of potential performance issues , http://www.net-snmp.org/wiki/index.php/GETNEXT. Defaults to false</description>
+                <required_on_edit>false</required_on_edit>
+                <required_on_create>false</required_on_create>
+            </arg>
             <arg name="split_bulk_output">
                 <title>Split Bulk Results</title>
                 <description>Whether or not to split up bulk output into individual events. Defaults to false.</description>
@@ -404,6 +410,7 @@ def do_run():
     
     
     #GET BULK params
+    do_subtree=int(config.get("do_get_subtree",0))
     do_bulk=int(config.get("do_bulk_get",0))
     split_bulk_output=int(config.get("split_bulk_output",0))
     non_repeaters=int(config.get("non_repeaters",0))
@@ -475,18 +482,19 @@ def do_run():
             else:
                 transport = cmdgen.UdpTransportTarget((destination, port)) 
             
-            apt = AttributePollerThread(cmdGen,destination,port,transport,snmp_version,do_bulk,security_object,snmpinterval,non_repeaters,max_repetitions,oid_args,split_bulk_output) 
+            apt = AttributePollerThread(cmdGen,destination,port,transport,snmp_version,do_bulk,do_subtree,security_object,snmpinterval,non_repeaters,max_repetitions,oid_args,split_bulk_output) 
             apt.start()        
 
 class AttributePollerThread(threading.Thread):
     
-     def __init__(self,cmdGen,destination,port,transport,snmp_version,do_bulk,security_object,snmpinterval,non_repeaters,max_repetitions,oid_args,split_bulk_output):
+     def __init__(self,cmdGen,destination,port,transport,snmp_version,do_bulk,do_subtree,security_object,snmpinterval,non_repeaters,max_repetitions,oid_args,split_bulk_output):
          threading.Thread.__init__(self)
          self.destination=destination
          self.port=port
          self.transport=transport
          self.snmp_version=snmp_version
          self.do_bulk=do_bulk
+         self.do_subtree=do_subtree
          self.security_object=security_object
          self.snmpinterval=snmpinterval
          self.non_repeaters=non_repeaters
@@ -512,6 +520,17 @@ class AttributePollerThread(threading.Thread):
                          logging.error("Exception with bulkCmd to %s:%s: %s" % (self.destination, self.port, str(e)))
                          time.sleep(float(self.snmpinterval))
                          continue
+                 elif self.do_subtree and not self.snmp_version == "1":
+                     try:
+                         errorIndication, errorStatus, errorIndex, varBindTable = self.cmdGen.nextCmd(
+                             self.security_object,
+                             self.transport,
+                             *self.oid_args, lookupNames=True, lookupValues=True)
+                     except: # catch *all* exceptions
+                         e = sys.exc_info()[1]
+                         logging.error("Exception with nextCmd to %s:%s: %s" % (self.destination, self.port, str(e)))
+                         time.sleep(float(self.snmpinterval))
+                         continue
                  else:
                      try:
                          errorIndication, errorStatus, errorIndex, varBinds = self.cmdGen.getCmd(
@@ -531,6 +550,8 @@ class AttributePollerThread(threading.Thread):
                  else:
                      if self.do_bulk:
                          handle_output(varBindTable,self.destination,table=True,split_bulk_output=self.split_bulk_output) 
+                     elif self.do_subtree:
+                         handle_output(varBindTable,self.destination,table=True,split_bulk_output=self.split_bulk_output)
                      else:  
                          handle_output(varBinds,self.destination,table=False,split_bulk_output=self.split_bulk_output)  
                             
