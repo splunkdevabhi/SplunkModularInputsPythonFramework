@@ -135,6 +135,18 @@ SCHEME = """<scheme>
                 <required_on_edit>false</required_on_edit>
                 <required_on_create>false</required_on_create>
             </arg>
+            <arg name="timeout">
+                <title>Timeout</title>
+                <description>SNMP attribute polling timeout (in seconds). Defaults to 1 second. NOTE: timer resolution is about 0.5 seconds</description>
+                <required_on_edit>false</required_on_edit>
+                <required_on_create>false</required_on_create>
+            </arg>
+            <arg name="retries">
+                <title>Automatic Retries</title>
+                <description>Number of times to automatically retry polling before giving up. Defaults to 5</description>
+                <required_on_edit>false</required_on_edit>
+                <required_on_create>false</required_on_create>
+            </arg>
             <arg name="do_bulk_get">
                 <title>Perform GET BULK</title>
                 <description>Whether or not to perform an SNMP GET BULK operation.This will retrieve all the object attributes in the sub tree of the declared OIDs.Be aware of potential performance issues , http://www.net-snmp.org/wiki/index.php/GETBULK. Defaults to false</description>
@@ -219,7 +231,9 @@ def do_validate():
         
         port=config.get("port")
         trap_port=config.get("trap_port")
-        snmpinterval=config.get("snmpinterval")   
+        snmpinterval=config.get("snmpinterval")
+        timeout=config.get("timeout")
+        retries=config.get("retries")
         max_repetitions=config.get("max_repetitions") 
         non_repeaters=config.get("non_repeaters") 
         
@@ -241,6 +255,9 @@ def do_validate():
         if not snmpinterval is None and int(snmpinterval) < 1:
             print_validation_error("SNMP Polling interval must be a positive integer")
             validationFailed = True
+        if not timeout is None and float(timeout) < 0:
+            print_validation_error("SNMP Polling timeout must not be a negative number")
+            validationFailed = true
         if validationFailed:
             sys.exit(2)
                
@@ -356,6 +373,8 @@ def do_run():
         
     port=int(config.get("port",161))
     snmpinterval=int(config.get("snmpinterval",60))   
+    timeout_val=float(config.get("timeout",1.0))
+    num_retries=int(config.get("retries",5))
     ipv6=int(config.get("ipv6",0))
     
     try: 
@@ -499,9 +518,9 @@ def do_run():
                 security_object = cmdgen.CommunityData(communitystring,mpModel=mp_model_val)
             
             if ipv6:
-                transport = cmdgen.Udp6TransportTarget((destination, port)) 
+                transport = cmdgen.Udp6TransportTarget((destination, port), timeout=timeout_val, retries=num_retries)
             else:
-                transport = cmdgen.UdpTransportTarget((destination, port)) 
+                transport = cmdgen.UdpTransportTarget((destination, port), timeout=timeout_val, retries=num_retries)
             
             apt = AttributePollerThread(cmdGen,destination,port,transport,snmp_version,do_bulk,do_subtree,security_object,snmpinterval,non_repeaters,max_repetitions,oid_args,split_bulk_output) 
             apt.start()        

@@ -217,6 +217,21 @@
           <view name="create"/>
           <key name="exampleText">How often to run the SNMP query (in seconds). Defaults to 60 seconds</key>
         </element>
+
+        <element name="timeout" type="textfield" label="Timeout">
+          <view name="list"/>
+          <view name="edit"/>
+          <view name="create"/>
+          <key name="exampleText">SNMP attribute polling timeout (in seconds). Defaults to 1 second. NOTE: timer resolution is about 0.5 seconds</key>
+        </element>
+
+        <element name="retries" type="textfield" label="Automatic Retries">
+          <view name="list"/>
+          <view name="edit"/>
+          <view name="create"/>
+          <key name="exampleText">Number of times to automatically retry polling before giving up. Defaults to 5</key>
+        </element>
+
         <element name="do_bulk_get" type="checkbox" label="Perform GET BULK">
           <view name="list"/>
           <view name="edit"/>
