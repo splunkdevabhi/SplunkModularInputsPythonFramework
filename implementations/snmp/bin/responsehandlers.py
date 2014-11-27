@@ -51,6 +51,53 @@ class DefaultResponseHandler:
                 splunkevent += '%s = "%s" ' % (name.prettyPrint(), val.prettyPrint())
             print_xml_single_instance_mode(destination, splunkevent)      
                    
+#Like DefaultResponseHandler, but splits multiple OIDs pulled from a GET request (instead of GETBULK) into separate events.
+class SplitNonBulkResponseHandler:
+
+    def __init__(self,**args):
+        pass
+
+    def __call__(self, response_object,destination,table=False,from_trap=False,trap_metadata=None,split_bulk_output=False,mibView=None):
+        splunkevent =""
+
+        #handle traps
+        if from_trap:
+            for oid, val in response_object:
+                try:
+                    (symName, modName), indices = mibvar.oidToMibName(mibView, oid)
+                    splunkevent +='%s::%s.%s =  ' % (modName, symName,'.'.join([ v.prettyPrint() for v in indices]))
+                except: # catch *all* exceptions
+                    e = sys.exc_info()[1]
+                    splunkevent +='%s =  ' % (oid)
+                try:
+                    decodedVal = mibvar.cloneFromMibValue(mibView,modName,symName,val)
+                    splunkevent +='%s ' % (decodedVal.prettyPrint())
+                except: # catch *all* exceptions
+                    e = sys.exc_info()[1]
+                    splunkevent +='%s ' % (val.prettyPrint())
+            splunkevent = trap_metadata + splunkevent
+            print_xml_single_instance_mode(destination, splunkevent)
+
+        #handle tables
+        elif table:
+            for varBindTableRow in response_object:
+                for name, val in varBindTableRow:
+                    output_element = '%s = "%s" ' % (name.prettyPrint(), val.prettyPrint())
+                    if split_bulk_output:
+                        print_xml_single_instance_mode(destination, output_element)
+
+                    else:
+                        splunkevent += output_element
+            print_xml_single_instance_mode(destination, splunkevent)
+        #handle scalars
+        else:
+            for name, val in response_object:
+                output_element = '%s = "%s" ' % (name.prettyPrint(), val.prettyPrint())
+                if split_bulk_output:
+                    print_xml_single_instance_mode(destination, output_element)
+                else:
+                    splunkevent += output_element
+            print_xml_single_instance_mode(destination, splunkevent)
 
 class JSONFormatterResponseHandler:
     
