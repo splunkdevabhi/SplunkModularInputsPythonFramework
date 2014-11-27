@@ -1,2 +1,3 @@
 implementations/snmp/bin/mibs/*.py
 implementations/snmp/bin/mibs/*.pyc
+temp_build/
