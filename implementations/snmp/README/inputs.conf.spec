@@ -54,6 +54,12 @@ v3_privProtocol= <value>
 *How often to run the SNMP query (in seconds). Defaults to 60 seconds
 snmpinterval= <value>
 
+*SNMP attribute polling timeout (in seconds). Defaults to 1 second. NOTE: timer resolution is about 0.5 seconds
+timeout= <value>
+
+*Number of times to automatically retry polling before giving up. Defaults to 5
+retries= <value>
+
 *Whether or not to listen for TRAP messages. Defaults to false
 listen_traps= <value>
 
