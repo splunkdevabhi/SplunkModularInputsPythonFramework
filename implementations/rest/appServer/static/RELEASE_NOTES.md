@@ -1,3 +1,9 @@
+1.3.6
+-----
+
+Added a custom response handler for rolling out generic JSON arrays
+Refactored key=value delimited string handling to only split on the first "=" delimiter
+
 1.3.5
 -----
 

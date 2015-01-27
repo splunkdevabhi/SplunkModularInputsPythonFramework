@@ -1,6 +1,7 @@
 #add your custom response handler class to this module
 import json
 import datetime
+
 #the default handler , does nothing , just passes the raw output directly to STDOUT
 class DefaultResponseHandler:
     
@@ -13,7 +14,7 @@ class DefaultResponseHandler:
             req_args["cookies"] = cookies        
         print_xml_stream(raw_response_output)
           
-
+#template
 class MyResponseHandler:
     
     def __init__(self,**args):
@@ -22,6 +23,8 @@ class MyResponseHandler:
     def __call__(self, response_object,raw_response_output,response_type,req_args,endpoint):        
         print_xml_stream("foobar")
 
+'''various example handlers follow'''
+        
 class BoxEventHandler:
     
     def __init__(self,**args):
@@ -164,7 +167,19 @@ class TwitterEventHandler:
         else:
             print_xml_stream(raw_response_output)
 
+class JSONArrayHandler:
 
+    def __init__(self,**args):
+        pass
+
+    def __call__(self, response_object,raw_response_output,response_type,req_args,endpoint):
+        if response_type == "json":
+            output = json.loads(raw_response_output)
+
+            for entry in output:
+                print_xml_stream(json.dumps(entry))
+        else:
+            print_xml_stream(raw_response_output)
                                       
                                                                              
 #HELPER FUNCTIONS

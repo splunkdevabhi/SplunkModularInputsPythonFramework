@@ -600,6 +600,7 @@ class AttributePollerThread(threading.Thread):
          except: # catch *all* exceptions
              e = sys.exc_info()[1]
              logging.error("Looks like an error: %s" % str(e))
+             logger.error('Error on line {}'.format(sys.exc_info()[-1].tb_lineno))
              sys.exit(1)
          
          

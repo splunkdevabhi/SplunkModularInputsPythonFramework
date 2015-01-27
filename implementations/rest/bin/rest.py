@@ -321,7 +321,7 @@ def do_run():
     oauth2_refresh_props={}
     if not oauth2_refresh_props_str is None:
         oauth2_refresh_props = dict((k.strip(), v.strip()) for k,v in 
-              (item.split('=') for item in oauth2_refresh_props_str.split(delimiter)))
+              (item.split('=',1) for item in oauth2_refresh_props_str.split(delimiter)))
     oauth2_refresh_props['client_id'] = oauth2_client_id
     oauth2_refresh_props['client_secret'] = oauth2_client_secret
         
@@ -329,13 +329,13 @@ def do_run():
     http_header_propertys_str=config.get("http_header_propertys")
     if not http_header_propertys_str is None:
         http_header_propertys = dict((k.strip(), v.strip()) for k,v in 
-              (item.split('=') for item in http_header_propertys_str.split(delimiter)))
+              (item.split('=',1) for item in http_header_propertys_str.split(delimiter)))
        
     url_args={} 
     url_args_str=config.get("url_args")
     if not url_args_str is None:
         url_args = dict((k.strip(), v.strip()) for k,v in 
-              (item.split('=') for item in url_args_str.split(delimiter)))
+              (item.split('=',1) for item in url_args_str.split(delimiter)))
         
     #json | xml | text    
     response_type=config.get("response_type","text")
@@ -356,7 +356,7 @@ def do_run():
     cookies_str=config.get("cookies")
     if not cookies_str is None:
         cookies = dict((k.strip(), v.strip()) for k,v in 
-              (item.split('=') for item in cookies_str.split(delimiter)))
+              (item.split('=',1) for item in cookies_str.split(delimiter)))
         
     request_timeout=int(config.get("request_timeout",30))
     
@@ -376,7 +376,7 @@ def do_run():
     response_handler_args_str=config.get("response_handler_args")
     if not response_handler_args_str is None:
         response_handler_args = dict((k.strip(), v.strip()) for k,v in 
-              (item.split('=') for item in response_handler_args_str.split(delimiter)))
+              (item.split('=',1) for item in response_handler_args_str.split(delimiter)))
         
     response_handler=config.get("response_handler","DefaultResponseHandler")
     module = __import__("responsehandlers")
@@ -393,7 +393,7 @@ def do_run():
         custom_auth_handler_args={} 
         custom_auth_handler_args_str=config.get("custom_auth_handler_args")
         if not custom_auth_handler_args_str is None:
-            custom_auth_handler_args = dict((k.strip(), v.strip()) for k,v in (item.split('=') for item in custom_auth_handler_args_str.split(delimiter)))
+            custom_auth_handler_args = dict((k.strip(), v.strip()) for k,v in (item.split('=',1) for item in custom_auth_handler_args_str.split(delimiter)))
         CUSTOM_AUTH_HANDLER_INSTANCE = class_(**custom_auth_handler_args)
     
     

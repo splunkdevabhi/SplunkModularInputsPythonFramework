@@ -7,6 +7,7 @@ import urllib
 
 #add your custom auth handler class to this module
 
+#template
 class MyCustomAuth(AuthBase):
     def __init__(self,**args):
         # setup any auth-related data here
@@ -19,7 +20,18 @@ class MyCustomAuth(AuthBase):
         #r.headers['foouser'] = self.username
         #r.headers['foopass'] = self.password
         return r
-
+    
+#example of adding a client certificate    
+class MyAzureCertAuthHAndler(AuthBase):
+    def __init__(self,**args):
+        self.cert = args['certPath']
+        pass
+        
+    def __call__(self, r):
+        r.cert = self.cert
+        return r
+    
+#cloudstack auth example
 class CloudstackAuth(AuthBase):
     def __init__(self,**args):
         # setup any auth-related data here
