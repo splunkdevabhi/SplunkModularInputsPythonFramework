@@ -1,4 +1,4 @@
-# Splunk REST API Modular Input v1.3.6
+# Splunk REST API Modular Input v1.3.7
 
 ## Overview
 
@@ -56,6 +56,9 @@ ie : /someurl/foo/$sometoken$/goo
 $sometoken$ will get substituted with the output of the 'sometoken' function in bin/tokens.py
 
 So you can add you own tokens simply by adding a function to bin/tokens.py
+
+Token replacement functions in the URL can also return a list of values, that will cause 
+multiple URL's to be formed and the requests for these URL's will be executed in parallel in multiple threads. 
 
 ## Dependencies
 

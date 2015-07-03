@@ -6,7 +6,7 @@ All Rights Reserved
 
 '''
 
-import sys,logging,os,time,re
+import sys,logging,os,time,re,threading
 import xml.dom.minidom
 import tokens
 
@@ -272,9 +272,7 @@ def do_validate():
     #TODO
     #if error , print_validation_error & sys.exit(2) 
     
-def do_run():
-    
-    config = get_input_config() 
+def do_run(config,endpoint):
     
     #setup some globals
     server_uri = config.get("server_uri")
@@ -286,8 +284,6 @@ def do_run():
     SESSION_TOKEN = config.get("session_key")
    
     #params
-    
-    original_endpoint=config.get("endpoint")
     
     http_method=config.get("http_method","GET")
     request_payload=config.get("request_payload")
@@ -453,9 +449,6 @@ def do_run():
             else:
                 req_args_data_current = ""
             
-            #token replacement
-            endpoint = replaceTokens(original_endpoint)
-         
             try:
                 if oauth2:
                     if http_method == "GET":
@@ -471,7 +464,7 @@ def do_run():
                         r = requests.post(endpoint,**req_args) 
                     elif http_method == "PUT":
                         r = requests.put(endpoint,**req_args) 
-                        
+                    
             except requests.exceptions.Timeout,e:
                 logging.error("HTTP Request Timeout error: %s" % str(e))
                 time.sleep(float(backoff_time))
@@ -499,8 +492,8 @@ def do_run():
                 logging.error("HTTP Request error: %s" % str(e))
                 time.sleep(float(backoff_time))
                 continue
-            
-            
+        
+        
             if "data" in req_args:   
                 checkParamUpdated(req_args_data_current,req_args["data"],"request_payload")
             if "params" in req_args:
@@ -509,24 +502,35 @@ def do_run():
                 checkParamUpdated(req_args_headers_current,dictParameterToStringFormat(req_args["headers"]),"http_header_propertys")
             if "cookies" in req_args:
                 checkParamUpdated(req_args_cookies_current,dictParameterToStringFormat(req_args["cookies"]),"cookies")
-                                 
+                                     
             time.sleep(float(polling_interval))
             
     except RuntimeError,e:
         logging.error("Looks like an error: %s" % str(e))
         sys.exit(2) 
-
+        
+  
 def replaceTokens(raw_string):
 
-    try:    
+    try:
+        url_list = [raw_string]   
         substitution_tokens = re.findall("\$(?:\w+)\$",raw_string)
         for token in substitution_tokens:
-            raw_string =  raw_string.replace(token,getattr(tokens,token[1:-1])())
-        return raw_string    
+            token_response = getattr(tokens,token[1:-1])()
+            if(isinstance(token_response,list)):   
+                temp_list = []               
+                for token_response_value in token_response:
+                    for url in url_list:
+                        temp_list.append(url.replace(token,token_response_value)) 
+                url_list = temp_list
+            else:
+                for index,url in enumerate(url_list):
+                    url_list[index] = url.replace(token,token_response)
+        return url_list    
     except: 
         e = sys.exc_info()[1]
-        logging.error("Looks like an error substituting tokens: %s" % str(e))  
-               
+        logger.error("Looks like an error substituting tokens: %s" % str(e))  
+                      
          
 def checkParamUpdated(cached,current,rest_name):
     
@@ -693,6 +697,11 @@ if __name__ == '__main__':
         else:
             usage()
     else:
-        do_run()
-        
+        config = get_input_config()
+        original_endpoint=config.get("endpoint")
+        #token replacement
+        endpoint_list = replaceTokens(original_endpoint)
+        for endpoint in endpoint_list:
+            requester = threading.Thread(target=do_run, args=(config,endpoint))
+            requester.start()
     sys.exit(0)

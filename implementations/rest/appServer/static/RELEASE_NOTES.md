@@ -1,3 +1,9 @@
+1.3.7
+-----
+Added support for token replacement functions in the URL to be able to return a list
+of values, that will cause multiple URL's to be formed and the requests for these
+URL's will be executed in parallel in multiple threads. See tokens.py
+
 1.3.6
 -----
 

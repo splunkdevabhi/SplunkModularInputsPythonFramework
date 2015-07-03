@@ -20,9 +20,34 @@ class MyCustomAuth(AuthBase):
         #r.headers['foouser'] = self.username
         #r.headers['foopass'] = self.password
         return r
-    
+
+class MyUnifyAuth(AuthBase):
+     def __init__(self,**args):
+         self.username = args['username']
+         self.password = args['password']
+         self.url = args['url']
+         pass
+ 
+     def __call__(self, r):
+         login_url = '%s?username=%s&login=login&password=%s' % self.url,self.username,self.password
+         login_response = requests.get(login_url)
+         cookies = login_response.cookies
+         if cookies:
+            r.cookies = cookies
+         return r
+         
 #example of adding a client certificate    
 class MyAzureCertAuthHAndler(AuthBase):
+    def __init__(self,**args):
+        self.cert = args['certPath']
+        pass
+        
+    def __call__(self, r):
+        r.cert = self.cert
+        return r
+    
+#example of adding a client certificate    
+class GoogleBigQueryCertAuthHandler(AuthBase):
     def __init__(self,**args):
         self.cert = args['certPath']
         pass

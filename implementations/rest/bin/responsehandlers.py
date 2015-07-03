@@ -166,6 +166,90 @@ class TwitterEventHandler:
                        
         else:
             print_xml_stream(raw_response_output)
+     
+
+                
+class AutomaticEventHandler:
+
+    def __init__(self,**args):
+        pass
+
+    #process the received JSON array     
+    def process_automatic_response(data):
+    
+        output = json.loads(data)
+        last_end_time = 0
+                    
+        for event in output:
+            #each element of the array is written to Splunk as a seperate event
+            print_xml_stream(json.dumps(event))
+            if "end_time" in event:
+                #get and set the latest end_time
+                end_time = event["end_time"]
+                if end_time > last_end_time:
+                    last_end_time = end_time
+        return last_end_time
+
+    def __call__(self, response_object,raw_response_output,response_type,req_args,endpoint):       
+            
+        if response_type == "json":
+            last_end_time = 0
+            
+            #process the response from the orginal request
+            end_time = process_automatic_response(raw_response_output)
+            
+            #set the latest end_time
+            if end_time > last_end_time:
+                last_end_time = end_time
+             
+            #follow any pagination links in the response    
+            next_link = response_object.links["next"] 
+                   
+            while next_link:
+                next_response = requests.get(next_link)       
+                end_time = process_automatic_response(next_response.text)  
+                #set the latest end_time 
+                if end_time > last_end_time:
+                    last_end_time = end_time  
+                next_link = next_response.links["next"]
+                        
+            if not "params" in req_args:
+                req_args["params"] = {}
+            
+            #set the start URL attribute for the next request
+            #the Mod Input will persist this to inputs.conf for you
+            req_args["params"]["start"] = last_end_time
+                       
+        else:
+            print_xml_stream(raw_response_output)
+            
+            
+            
+class OpenstackTelemetryHandler:
+
+    def __init__(self,**args):
+        pass
+
+    def __call__(self, response_object,raw_response_output,response_type,req_args,endpoint):       
+            
+        if response_type == "json":        
+            output = json.loads(raw_response_output)
+            timestamp = 0
+            for counter in output:
+                print_xml_stream(json.dumps(counter))
+                if "timestamp" in counter:
+                    temp_timestamp = counter["timestamp"]
+                    if temp_timestamp > timestamp:
+                        timestamp = temp_timestamp
+            
+            if not "params" in req_args:
+                req_args["params"] = {}
+            
+            req_args["params"]["q.value"] = timestamp
+                       
+        else:
+            print_xml_stream(raw_response_output)
+
 
 class JSONArrayHandler:
 
@@ -181,7 +265,38 @@ class JSONArrayHandler:
         else:
             print_xml_stream(raw_response_output)
                                       
-                                                                             
+
+class FlightInfoEventHandler:
+    
+    def __init__(self,**args):
+        pass
+        
+    def __call__(self, response_object,raw_response_output,response_type,req_args,endpoint):
+        if response_type == "json":        
+            output = json.loads(raw_response_output)
+            for flight in output["FlightInfoResult"]["flights"]:
+                print_xml_stream(json.dumps(flight)) 
+                
+                      
+        else:
+            print_xml_stream(raw_response_output) 
+            
+class AlarmHandler:
+    
+    def __init__(self,**args):
+        pass
+        
+    def __call__(self, response_object,raw_response_output,response_type,req_args,endpoint):
+        if response_type == "xml": 
+            import xml.etree.ElementTree as ET
+            alarm_list = ET.fromstring(encodeXMLText(raw_response_output))
+            for alarm in alarm_list:
+                alarm_xml_str = ET.tostring(alarm, encoding='utf8', method='xml')
+                print_xml_stream(alarm_xml_str)               
+                      
+        else:
+            print_xml_stream(raw_response_output) 
+                                                                                         
 #HELPER FUNCTIONS
     
 # prints XML stream
