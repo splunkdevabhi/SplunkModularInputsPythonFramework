@@ -1,3 +1,7 @@
+1.3.8
+-----
+Minor code bug with logging
+
 1.3.7
 -----
 Added support for token replacement functions in the URL to be able to return a list

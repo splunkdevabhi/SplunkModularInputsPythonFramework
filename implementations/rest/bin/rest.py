@@ -529,7 +529,7 @@ def replaceTokens(raw_string):
         return url_list    
     except: 
         e = sys.exc_info()[1]
-        logger.error("Looks like an error substituting tokens: %s" % str(e))  
+        logging.error("Looks like an error substituting tokens: %s" % str(e))  
                       
          
 def checkParamUpdated(cached,current,rest_name):
