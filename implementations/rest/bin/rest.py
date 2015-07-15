@@ -9,6 +9,7 @@ All Rights Reserved
 import sys,logging,os,time,re,threading
 import xml.dom.minidom
 import tokens
+from datetime import datetime
 
 SPLUNK_HOME = os.environ.get("SPLUNK_HOME")
 
@@ -34,6 +35,7 @@ from oauthlib.oauth2 import WebApplicationClient
 from requests.auth import AuthBase
 from splunklib.client import connect
 from splunklib.client import Service
+from croniter import croniter
            
 #set up logging
 logging.root
@@ -214,6 +216,18 @@ SCHEME = """<scheme>
                 <required_on_edit>false</required_on_edit>
                 <required_on_create>false</required_on_create>
             </arg>
+            <arg name="sequential_mode">
+                <title>Sequential Mode</title>
+                <description>Whether multiple requests spawned by tokenization are run in parallel or sequentially</description>
+                <required_on_edit>false</required_on_edit>
+                <required_on_create>false</required_on_create>
+            </arg>
+            <arg name="sequential_stagger_time">
+                <title>Sequential Stagger Time</title>
+                <description>An optional stagger time period between sequential requests</description>
+                <required_on_edit>false</required_on_edit>
+                <required_on_create>false</required_on_create>
+            </arg>
             <arg name="delimiter">
                 <title>Delimiter</title>
                 <description>Delimiter to use for any multi "key=value" field inputs</description>
@@ -267,12 +281,18 @@ SCHEME = """<scheme>
 </scheme>
 """
 
+def get_current_datetime_for_cron():
+    current_dt = datetime.now()
+    #dont need seconds/micros for cron
+    current_dt = current_dt.replace(second=0, microsecond=0)
+    return current_dt
+            
 def do_validate():
     config = get_validation_config() 
     #TODO
     #if error , print_validation_error & sys.exit(2) 
     
-def do_run(config,endpoint):
+def do_run(config,endpoint_list):
     
     #setup some globals
     server_uri = config.get("server_uri")
@@ -358,7 +378,17 @@ def do_run(config,endpoint):
     
     backoff_time=int(config.get("backoff_time",10))
     
-    polling_interval=int(config.get("polling_interval",60))
+    sequential_stagger_time  = int(config.get("sequential_stagger_time",0))
+    
+    polling_interval_string = config.get("polling_interval","60")
+    
+    if polling_interval_string.isdigit():
+        polling_type = 'interval'
+        polling_interval=int(polling_interval_string)   
+    else:
+        polling_type = 'cron'
+        cron_start_date = datetime.now()
+        cron_iter = croniter(polling_interval_string, cron_start_date)
     
     index_error_response_codes=int(config.get("index_error_response_codes",0))
     
@@ -431,79 +461,90 @@ def do_run(config,endpoint):
                           
                     
         while True:
-                        
-            if "params" in req_args:
-                req_args_params_current = dictParameterToStringFormat(req_args["params"])
-            else:
-                req_args_params_current = ""
-            if "cookies" in req_args:
-                req_args_cookies_current = dictParameterToStringFormat(req_args["cookies"])
-            else:
-                req_args_cookies_current = ""    
-            if "headers" in req_args: 
-                req_args_headers_current = dictParameterToStringFormat(req_args["headers"])
-            else:
-                req_args_headers_current = ""
-            if "data" in req_args:
-                req_args_data_current = req_args["data"]
-            else:
-                req_args_data_current = ""
+             
+            if polling_type == 'cron':
+                next_cron_firing = cron_iter.get_next(datetime)
+                while get_current_datetime_for_cron() != next_cron_firing:
+                    time.sleep(float(10))
             
-            try:
-                if oauth2:
-                    if http_method == "GET":
-                        r = oauth2.get(endpoint,**req_args)
-                    elif http_method == "POST":
-                        r = oauth2.post(endpoint,**req_args) 
-                    elif http_method == "PUT":
-                        r = oauth2.put(endpoint,**req_args)       
+            for endpoint in endpoint_list:
+                                    
+                if "params" in req_args:
+                    req_args_params_current = dictParameterToStringFormat(req_args["params"])
                 else:
-                    if http_method == "GET":
-                        r = requests.get(endpoint,**req_args)
-                    elif http_method == "POST":
-                        r = requests.post(endpoint,**req_args) 
-                    elif http_method == "PUT":
-                        r = requests.put(endpoint,**req_args) 
-                    
-            except requests.exceptions.Timeout,e:
-                logging.error("HTTP Request Timeout error: %s" % str(e))
-                time.sleep(float(backoff_time))
-                continue
-            except Exception as e:
-                logging.error("Exception performing request: %s" % str(e))
-                time.sleep(float(backoff_time))
-                continue
-            try:
-                r.raise_for_status()
-                if streaming_request:
-                    for line in r.iter_lines():
-                        if line:
-                            handle_output(r,line,response_type,req_args,endpoint)  
-                else:                    
-                    handle_output(r,r.text,response_type,req_args,endpoint)
-            except requests.exceptions.HTTPError,e:
-                error_output = r.text
-                error_http_code = r.status_code
-                if index_error_response_codes:
-                    error_event=""
-                    error_event += 'http_error_code = %s error_message = %s' % (error_http_code, error_output) 
-                    print_xml_single_instance_mode(error_event)
-                    sys.stdout.flush()
-                logging.error("HTTP Request error: %s" % str(e))
-                time.sleep(float(backoff_time))
-                continue
-        
-        
-            if "data" in req_args:   
-                checkParamUpdated(req_args_data_current,req_args["data"],"request_payload")
-            if "params" in req_args:
-                checkParamUpdated(req_args_params_current,dictParameterToStringFormat(req_args["params"]),"url_args")
-            if "headers" in req_args:
-                checkParamUpdated(req_args_headers_current,dictParameterToStringFormat(req_args["headers"]),"http_header_propertys")
-            if "cookies" in req_args:
-                checkParamUpdated(req_args_cookies_current,dictParameterToStringFormat(req_args["cookies"]),"cookies")
-                                     
-            time.sleep(float(polling_interval))
+                    req_args_params_current = ""
+                if "cookies" in req_args:
+                    req_args_cookies_current = dictParameterToStringFormat(req_args["cookies"])
+                else:
+                    req_args_cookies_current = ""    
+                if "headers" in req_args: 
+                    req_args_headers_current = dictParameterToStringFormat(req_args["headers"])
+                else:
+                    req_args_headers_current = ""
+                if "data" in req_args:
+                    req_args_data_current = req_args["data"]
+                else:
+                    req_args_data_current = ""
+                
+                try:
+                    if oauth2:
+                        if http_method == "GET":
+                            r = oauth2.get(endpoint,**req_args)
+                        elif http_method == "POST":
+                            r = oauth2.post(endpoint,**req_args) 
+                        elif http_method == "PUT":
+                            r = oauth2.put(endpoint,**req_args)       
+                    else:
+                        if http_method == "GET":
+                            r = requests.get(endpoint,**req_args)
+                        elif http_method == "POST":
+                            r = requests.post(endpoint,**req_args) 
+                        elif http_method == "PUT":
+                            r = requests.put(endpoint,**req_args) 
+                        
+                except requests.exceptions.Timeout,e:
+                    logging.error("HTTP Request Timeout error: %s" % str(e))
+                    time.sleep(float(backoff_time))
+                    continue
+                except Exception as e:
+                    logging.error("Exception performing request: %s" % str(e))
+                    time.sleep(float(backoff_time))
+                    continue
+                try:
+                    r.raise_for_status()
+                    if streaming_request:
+                        for line in r.iter_lines():
+                            if line:
+                                handle_output(r,line,response_type,req_args,endpoint)  
+                    else:                    
+                        handle_output(r,r.text,response_type,req_args,endpoint)
+                except requests.exceptions.HTTPError,e:
+                    error_output = r.text
+                    error_http_code = r.status_code
+                    if index_error_response_codes:
+                        error_event=""
+                        error_event += 'http_error_code = %s error_message = %s' % (error_http_code, error_output) 
+                        print_xml_single_instance_mode(error_event)
+                        sys.stdout.flush()
+                    logging.error("HTTP Request error: %s" % str(e))
+                    time.sleep(float(backoff_time))
+                    continue
+            
+            
+                if "data" in req_args:   
+                    checkParamUpdated(req_args_data_current,req_args["data"],"request_payload")
+                if "params" in req_args:
+                    checkParamUpdated(req_args_params_current,dictParameterToStringFormat(req_args["params"]),"url_args")
+                if "headers" in req_args:
+                    checkParamUpdated(req_args_headers_current,dictParameterToStringFormat(req_args["headers"]),"http_header_propertys")
+                if "cookies" in req_args:
+                    checkParamUpdated(req_args_cookies_current,dictParameterToStringFormat(req_args["cookies"]),"cookies")
+                
+                if sequential_stagger_time > 0:
+                    time.sleep(float(sequential_stagger_time)) 
+                   
+            if polling_type == 'interval':                         
+                time.sleep(float(polling_interval))
             
     except RuntimeError,e:
         logging.error("Looks like an error: %s" % str(e))
@@ -701,7 +742,14 @@ if __name__ == '__main__':
         original_endpoint=config.get("endpoint")
         #token replacement
         endpoint_list = replaceTokens(original_endpoint)
-        for endpoint in endpoint_list:
-            requester = threading.Thread(target=do_run, args=(config,endpoint))
-            requester.start()
+        
+        sequential_mode=int(config.get("sequential_mode",0))
+           
+        if bool(sequential_mode):
+            do_run(config,endpoint_list)        
+        else:  #parallel mode           
+            for endpoint in endpoint_list:
+                requester = threading.Thread(target=do_run, args=(config,[endpoint]))
+                requester.start()
+        
     sys.exit(0)
