@@ -1,4 +1,4 @@
-# Splunk Tesla Modular Input v0.5
+# Splunk Tesla Modular Input v0.6
 
 ## Overview
 
@@ -20,11 +20,15 @@ The following unofficial API reference was utilised : http://docs.timdorr.apiary
 
 ### Authentication
 
-Authentication is with your My Tesla credentials.
-After the initial authentication , cookies are persisted back to inputs.conf and sent with each API request.
+Authentication is with your My Tesla credentials , plain text email and password, matching the owner's login information for https://my.teslamotors.com/user/login.
+
+A client ID and secret are also required.
+
+The current client ID and secret are available here : http://pastebin.com/fX6ejAHd
+
 You can setup up your My Tesla username and password in each pre defined stanza via SplunkWeb.
-Or you can edit SPLUNK_HOME/etc/apps/tesla_ta/default/inputs.conf directly and set the username and password in the 
-parent tesla stanza so that all child stanzas inherit your username and password.
+
+Or you can edit SPLUNK_HOME/etc/apps/tesla_ta/default/inputs.conf directly and set the username and password in the parent tesla stanza so that all child stanzas inherit your username and password.
 
 ### Data Source Types
 
@@ -35,7 +39,6 @@ By default the following data is requested and returned in JSON format :
 * Vehicle Charge State
 * Vehicle Climate State
 * Vehicle Drive State
-* Vehicle GUI Settings
 * Vehicle State
 
 There are default stanzas setup for each of these.

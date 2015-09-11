@@ -3,17 +3,20 @@
 * Tesla Vehicle ID
 vehicle_id = <value>
 
-* Username for My Tesla
+* Username (email) for My Tesla
 user = <value>
 
 * Password for My Tesla
 password = <value>
 
-* Session Cookie
-cookie_s_portal_session  = <value>
+* Client ID
+client_id  = <value>
 
-* User Credentials Cookie
-cookie_user_credentials  = <value>
+* Client Secret
+client_secret  = <value>
+
+* Tesla OAuth URL
+oauth_url = <value>
 
 * Tesla REST API Base URL
 api_base = <value>

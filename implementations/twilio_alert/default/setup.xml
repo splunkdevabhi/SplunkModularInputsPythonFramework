@@ -1,0 +1,18 @@
+<setup>
+    <block title="Twilio SMS Alerts">
+        <text>Configure Twilio SMS Alerting</text>
+    </block>
+
+    <block title="Global Authentication Settings" endpoint="admin/alert_actions" entity="twilio">
+        <input field="param.authtoken">
+            <label>Auth Token</label>
+            <type>text</type>
+        </input>
+        <input field="param.accountsid">
+            <label>Account SID</label>
+            <type>text</type>
+        </input>
+        
+    </block>
+
+</setup>

@@ -20,6 +20,7 @@ class MyCustomAuth(AuthBase):
         #r.headers['foouser'] = self.username
         #r.headers['foopass'] = self.password
         return r
+    
 
 class MyUnifyAuth(AuthBase):
      def __init__(self,**args):

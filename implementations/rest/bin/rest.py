@@ -299,6 +299,7 @@ def do_run(config,endpoint_list):
     global SPLUNK_PORT
     global STANZA
     global SESSION_TOKEN 
+    global delimiter
     SPLUNK_PORT = server_uri[18:]
     STANZA = config.get("name")
     SESSION_TOKEN = config.get("session_key")
@@ -588,7 +589,7 @@ def checkParamUpdated(cached,current,rest_name):
 def dictParameterToStringFormat(parameter):
     
     if parameter:
-        return ''.join('{}={},'.format(key, val) for key, val in parameter.items())[:-1] 
+        return ''.join(('{}={}'+delimiter).format(key, val) for key, val in parameter.items())[:-1] 
     else:
         return None
     

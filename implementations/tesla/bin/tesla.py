@@ -6,7 +6,7 @@ All Rights Reserved
 
 '''
 
-import sys, logging, os, time, re
+import sys, logging, os, time, re,json
 import xml.dom.minidom
 
 SPLUNK_HOME = os.environ.get("SPLUNK_HOME")
@@ -62,7 +62,13 @@ SCHEME = """<scheme>
                 <description>Base URL to send the HTTP GET request to</description>
                 <required_on_edit>false</required_on_edit>
                 <required_on_create>true</required_on_create>
-            </arg>                  
+            </arg>
+            <arg name="oauth_url">
+                <title>OAuth URL</title>
+                <description>OAuth URL</description>
+                <required_on_edit>false</required_on_edit>
+                <required_on_create>true</required_on_create>
+            </arg>                   
             <arg name="endpoint">
                 <title>Endpoint Path</title>
                 <description>Endpoint Path to send the HTTP GET request to</description>
@@ -81,15 +87,15 @@ SCHEME = """<scheme>
                 <required_on_edit>false</required_on_edit>
                 <required_on_create>true</required_on_create>
             </arg>
-            <arg name="cookie_s_portal_session">
-                <title>Session Cookie</title>
-                <description>Session Cookie</description>
+            <arg name="client_id">
+                <title>Client ID</title>
+                <description>Client ID</description>
                 <required_on_edit>false</required_on_edit>
                 <required_on_create>false</required_on_create>
             </arg>
-            <arg name="cookie_user_credentials">
-                <title>Credentials Cookie</title>
-                <description>Credentials Cookie</description>
+            <arg name="client_secret">
+                <title>Client Secret</title>
+                <description>Client Secret</description>
                 <required_on_edit>false</required_on_edit>
                 <required_on_create>false</required_on_create>
             </arg>
@@ -188,10 +194,10 @@ def do_run():
     user = config.get("user")
     password = config.get("password")
     
-    cookie_s_portal_session = config.get("cookie_s_portal_session")
-    cookie_user_credentials = config.get("cookie_user_credentials")
+    client_id = config.get("client_id")
+    client_secret = config.get("client_secret")
 
-   
+    oauth_url = config.get("oauth_url")
     response_type = config.get("response_type", "json")
     
     http_proxy = config.get("http_proxy")
@@ -207,9 +213,9 @@ def do_run():
     
     request_timeout = int(config.get("request_timeout", 30))
     
-    backoff_time = int(config.get("backoff_time", 10))
+    backoff_time = int(config.get("backoff_time", 120))
     
-    polling_interval = int(config.get("polling_interval", 60))
+    polling_interval = int(config.get("polling_interval", 300))
     
     index_error_response_codes = int(config.get("index_error_response_codes", 0))
     
@@ -236,52 +242,38 @@ def do_run():
     try: 
             
         req_args = {"verify" : False , "timeout" : float(request_timeout)}
-
-        
+       
         if proxies:
             req_args["proxies"] = proxies
-
-        cookies = {}
-        if cookie_s_portal_session and cookie_user_credentials:
-            cookies = {'_s_portal_session':cookie_s_portal_session, 'user_credentials':cookie_user_credentials} 
-            req_args["cookies"] = cookies
-                         
-                    
+         
+        token = ''           
         while True:
-                        
-            if "cookies" in req_args:
-                req_args_cookies_current = dictParameterToStringFormat(req_args["cookies"])
-            else:
-                req_args_cookies_current = ""
-            
-             
+                                     
             try:
-
-                if not "cookies" in req_args:
+               
+                if not token:
                     
-                    #requests will role this out into form url encoded format
-                    req_args['data'] = {'user_session[email]':user, 'user_session[password]':password}
-                    login_url = api_base + '/login'
+                    req_args['data'] = {'grant_type':'password','email':user, 'password':password,'client_id':client_id,'client_secret':client_secret}
+ 
                     #perform auth request
-                    r = requests.post(login_url, **req_args)
+                    r = requests.post(oauth_url, **req_args)
                     
-                    #get the auth cookies
-                    credentials_cookie = r.cookies['user_credentials'] 
-                    session_cookie = r.cookies['_s_portal_session']
+                    json_response = json.loads(r.text)
+                    token = json_response['access_token']
+                   
                     del req_args['data']
-                    
-                    #set the auth cookies for API requests
-                    cookies = {'_s_portal_session':session_cookie, 'user_credentials':credentials_cookie} 
-                    req_args['cookies'] = cookies
-                    
+                    req_args['headers'] = {'Authorization':'Bearer '+token}
+                                        
                 #perform API request
                 r = requests.get(endpoint, **req_args)
                 
             except requests.exceptions.Timeout, e:
+                token = ''
                 logging.error("HTTP Request Timeout error: %s" % str(e))
                 time.sleep(float(backoff_time))
                 continue
             except Exception as e:
+                token = ''
                 logging.error("Exception performing request: %s" % str(e))
                 time.sleep(float(backoff_time))
                 continue
@@ -290,8 +282,7 @@ def do_run():
                 handle_output(r, r.text, response_type, req_args, endpoint)
             except requests.exceptions.HTTPError, e:
                 #reset for reauth
-                if 'cookies' in req_args:
-                    del req_args['cookies']
+                token = ''
                 error_output = r.text
                 error_http_code = r.status_code
                 if index_error_response_codes:
@@ -303,27 +294,13 @@ def do_run():
                 time.sleep(float(backoff_time))
                 continue
             
-            
-            if "cookies" in req_args:   
-                checkCookiesUpdated(req_args_cookies_current, dictParameterToStringFormat(req_args["cookies"]), req_args["cookies"])
-                              
+                               
             time.sleep(float(polling_interval))
             
     except RuntimeError, e:
         logging.error("Looks like an error: %s" % str(e))
         sys.exit(2) 
-     
-def checkCookiesUpdated(cached, current, cookies):
-    
-    if not (cached == current):
-        try:
-            args = {'host':'localhost', 'port':SPLUNK_PORT, 'token':SESSION_TOKEN}
-            service = Service(**args)   
-            item = service.inputs.__getitem__(STANZA[8:])
-            item.update(**{'cookie_s_portal_session':cookies['_s_portal_session'], 'cookie_user_credentials':cookies['user_credentials']})
-        except RuntimeError, e:
-            logging.error("Looks like an error updating the modular input parameter cookies")   
-        
+          
                        
 def dictParameterToStringFormat(parameter):
     

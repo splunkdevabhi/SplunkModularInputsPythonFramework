@@ -24,12 +24,12 @@
 					<key name="exampleText">Your Tesla vehicle ID</key>
 				</element>
 
-				<element name="user" type="textfield" label="My Tesla Username">
+				<element name="user" type="textfield" label="My Tesla Username(email)">
 
 					<view name="edit" />
 					<view name="create" />
 					
-					<key name="exampleText">My Tesla Username</key>
+					<key name="exampleText">My Tesla Username(email)</key>
 				</element>
 
 				<element name="password" type="textfield" label="My Tesla Password">
@@ -39,7 +39,22 @@
 					
 					<key name="exampleText">My Tesla Password</key>
 				</element>
+				
+				<element name="client_id" type="textfield" label="Client ID">
 
+					<view name="edit" />
+					<view name="create" />
+					
+					<key name="exampleText">Client ID can be found here : http://pastebin.com/fX6ejAHd</key>
+				</element>
+				
+				<element name="client_secret" type="textfield" label="Client Secret">
+
+					<view name="edit" />
+					<view name="create" />
+					
+					<key name="exampleText">Client Secret can be found here : http://pastebin.com/fX6ejAHd</key>
+				</element>
 
 				<element name="endpoint" type="textfield" label="Endpoint Path">
 
@@ -48,9 +63,6 @@
 					<view name="list" />
 					<key name="exampleText">Tesla API endpoint path</key>
 				</element>
-
-
-
 				
 				<element name="response_handler" type="textfield" label="Response Handler">
 

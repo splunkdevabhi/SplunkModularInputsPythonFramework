@@ -1,8 +1,12 @@
+1.4
+----
+Delimiter fix
+
 1.3.9
 -----
 Can now declare a CRON pattern for your polling interval.
 Multiple requests spawned by tokenization can be declared to run in parallel or sequentially.
-Multipe sequential requests can optionally have a stagger time enforced between each request.
+Multiple sequential requests can optionally have a stagger time enforced between each request.
 
 1.3.8
 -----

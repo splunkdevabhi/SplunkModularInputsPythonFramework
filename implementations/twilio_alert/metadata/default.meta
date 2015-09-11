@@ -1,0 +1,8 @@
+[]
+access = read : [ * ], write : [ admin ]
+
+[alert_actions/twilio]
+export = system
+
+[alerts]
+export = system
