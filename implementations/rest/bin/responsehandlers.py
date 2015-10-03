@@ -152,7 +152,7 @@ class TwitterEventHandler:
         if response_type == "json":        
             output = json.loads(raw_response_output)
             last_tweet_indexed_id = 0
-            for twitter_event in output["statuses"]:
+            for twitter_event in output:
                 print_xml_stream(json.dumps(twitter_event))
                 if "id_str" in twitter_event:
                     tweet_id = twitter_event["id_str"]
@@ -265,7 +265,8 @@ class JSONArrayHandler:
         else:
             print_xml_stream(raw_response_output)
                                       
-
+            
+    
 class FlightInfoEventHandler:
     
     def __init__(self,**args):
